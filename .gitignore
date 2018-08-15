@@ -14,7 +14,7 @@ project/target/
 target/
 logs/
 conf/notebooks/Untitled*
-notebooks/Untitled*
+notebooks/*
 adam.log
 notebooks/oreilly
 notebooks/temp

@@ -1,29 +1,20 @@
 package notebook
 package client
 
-import java.io.{File, FileWriter}
+import java.io.File
 
+import akka.actor.{Actor, ActorRef, Props}
+import com.datafellas.utils._
+import notebook.kernel._
+import notebook.kernel.repl.common.{ReplHelpers, ReplT}
+import notebook.repl.command_interpreters.combineIntepreters
+import notebook.repl.{ReplCommand, command_interpreters}
+import notebook.util.CoursierDeps
 import org.joda.time.LocalDateTime
+import org.sonatype.aether.repository.RemoteRepository
 
 import scala.collection.immutable.Queue
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.util.{Try, Success=>TSuccess, Failure=>TFailure}
-
-import akka.actor.{Actor, ActorRef, ActorLogging, Props}
-import kernel._
-
-import org.sonatype.aether.repository.RemoteRepository
-
-import notebook.kernel.repl.common.ReplT
-import notebook.kernel.repl.common.ReplHelpers
-import notebook.OutputTypes._
-import com.datafellas.utils._
-import notebook.front._
-import notebook.front.widgets._
-import notebook.repl.{ReplCommand, command_interpreters}
-import notebook.repl.command_interpreters.combineIntepreters
-import notebook.util.CoursierDeps
 
 
 /**
@@ -57,15 +48,15 @@ class ReplCalculator(
       case "maven"::r => r //skip the flavor → always maven in 2.11
       case xs => xs
     }
-    val (username, password):(Option[String],Option[String]) = rest.headOption.map { auth =>
-      auth match {
-        case authRegex(usernamePassword)   =>
-          val (username, password) = usernamePassword match { case credRegex(username, password) => (username, password) }
-          val u = if (username.startsWith("$")) sys.env.get(username.tail).get else username
-          val p = if (password.startsWith("$")) sys.env.get(password.tail).get else password
-          (Some(u), Some(p))
-        case _                             => (None, None)
-      }
+    val (username, password):(Option[String],Option[String]) = rest.headOption.map {
+      case authRegex(usernamePassword) =>
+        val (username, password) = usernamePassword match {
+          case credRegex(username, password) => (username, password)
+        }
+        val u = if (username.startsWith("$")) sys.env.get(username.tail).get else username
+        val p = if (password.startsWith("$")) sys.env.get(password.tail).get else password
+        (Some(u), Some(p))
+      case _ => (None, None)
     }.getOrElse((None, None))
     val rem = Repos(id.trim,tpe.trim,url.trim,username,password)
     val logR = r.replaceAll("\"", "\\\\\"")
@@ -135,13 +126,13 @@ class ReplCalculator(
         case Failure(str) =>
           if (notify) {
             eval(s"""
-            """,false)()
+            """,notify = false)()
           }
           log.error(failure(str))
         case _ =>
           if (notify) {
             eval(s"""
-            """,false)()
+            """,notify = false)()
           }
           log.info(success)
       }
