@@ -182,7 +182,7 @@ object Dependencies {
   val commonsCodec = "commons-codec" % "commons-codec" % "1.10" force()
 
   // P.S. Play 2.4 uses guava 18.0; play 2.5 uses 19.0. seems OK for force it.
-  val defaultGuavaVersion = sys.props.getOrElse("guava.version", "16.0.1") // 16.0.1 for cassandra connector 1.6-M1
+  val defaultGuavaVersion = sys.props.getOrElse("guava.version", "14.0") // 16.0.1 for cassandra connector 1.6-M1
   val guava = "com.google.guava" % "guava" % defaultGuavaVersion force()
   val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.7"
   val log4j = "log4j" % "log4j" % "1.2.17"
