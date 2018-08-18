@@ -87,7 +87,7 @@ object KernelManager {
 
   def apply(id: String) = kernels(id)
 
-  def atPath(path: String) = kernels.find { case (id, k) => k.notebookPath.exists(_ == path) }
+  def atPath(path: String) = kernels.find { case (id, k) => k.notebookPath.contains(path) }
 
   def add(id: String, kernel: Kernel) {
     kernels += id -> kernel

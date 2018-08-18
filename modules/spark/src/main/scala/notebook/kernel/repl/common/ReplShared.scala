@@ -79,7 +79,7 @@ object ReplHelpers {
       .appendSuffix("m")
       .appendSecondsWithOptionalMillis
       .appendSuffix("s")
-      .toFormatter;
-    formatter.print(duration.toPeriod());
+      .toFormatter
+    formatter.print(duration.toPeriod())
   }
 }

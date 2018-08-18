@@ -10,6 +10,7 @@ object Extra {
   val gitNotebookProviderSettings: ListBuffer[Def.Setting[_]] = ListBuffer()
   val sbtDependencyManagerSettings: ListBuffer[Def.Setting[_]] = ListBuffer()
   val subprocessSettings: ListBuffer[Def.Setting[_]] = ListBuffer()
+  val collectorSettings: ListBuffer[Def.Setting[_]] = ListBuffer()
   val observableSettings: ListBuffer[Def.Setting[_]] = ListBuffer()
   val commonSettings: ListBuffer[Def.Setting[_]] = ListBuffer()
   val sparkSettings: ListBuffer[Def.Setting[_]] = ListBuffer()

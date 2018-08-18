@@ -43,7 +43,6 @@ dockerRepository := DockerProperties.registry //Docker
 
 packageName in Docker := MainProperties.name
 
-
 // DEBIAN PACKAGE
 enablePlugins(DebianPlugin)
 
@@ -117,12 +116,9 @@ resolvers in ThisBuild ++= Seq(
   Resolver.typesafeIvyRepo("snapshots"),
   "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos",
   "mapr" at "http://repository.mapr.com/maven",
-  // docker
   "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
 ) ++ ((sparkResolver, searchSparkResolver, sparkVersion.value) match {
-  case (Some(x), _, _) => Seq(
-                    ("spark " + x) at ("https://repository.apache.org/content/repositories/orgapachespark-"+x)
-                  )
+  case (Some(x), _, _) => Seq(("spark " + x) at ("https://repository.apache.org/content/repositories/orgapachespark-"+x))
   case (None, true, sv)  =>
     println(s"""|
     |**************************************************************
@@ -159,9 +155,6 @@ resolvers in ThisBuild ++= Seq(
   case (None, false, _) => Nil
 })
 
-// FIXME: see https://www.playframework.com/documentation/2.5.x/IDE#Eclipse
-// EclipseKeys.skipParents in ThisBuild := false
-
 compileOrder := CompileOrder.Mixed
 
 publishMavenStyle := false
@@ -173,8 +166,6 @@ javacOptions ++= Seq("-Xlint:deprecation", "-g")
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 scalacOptions ++= Seq("-Xmax-classfile-name", "100")
-
-//scriptClasspath := Seq("*")
 
 scriptClasspath in batScriptReplacements := Seq("*")
 
@@ -217,9 +208,6 @@ libraryDependencies ++= List(
   akkaSlf4j,
   cache,
   commonsIO,
-  // ↓ to fix java.lang.IllegalStateException: impossible to get artifacts when data has
-  //   not been loaded. IvyNode = org.apache.commons#commons-exec;1.1
-  //   encountered when using hadoop "2.0.0-cdh4.2.0"
   commonsExec,
   commonsCodec,
   //scala stuffs
@@ -323,8 +311,8 @@ def rootProject = {
 lazy val sparkNotebook = rootProject.enablePlugins(SbtWeb)
   // https://www.playframework.com/documentation/2.5.x/SettingsLogger#Using-a-Custom-Logging-Framework
   .disablePlugins(PlayLogback)
-  .aggregate(sparkNotebookCore, gitNotebookProvider, sbtDependencyManager, sbtProjectGenerator, subprocess, observable, common, spark, kernel)
-  .dependsOn(sparkNotebookCore, gitNotebookProvider, subprocess, observable, sbtProjectGenerator, common, spark, kernel)
+  .aggregate(sparkNotebookCore, gitNotebookProvider, sbtDependencyManager, sbtProjectGenerator, subprocess, observable, common, spark, kernel, collector)
+  .dependsOn(sparkNotebookCore, gitNotebookProvider, subprocess, observable, sbtProjectGenerator, common, spark, kernel, collector)
   .settings(sharedSettings: _*)
   .settings(
     bashScriptExtraDefines +=
@@ -332,11 +320,9 @@ lazy val sparkNotebook = rootProject.enablePlugins(SbtWeb)
 
     // configure the "universal" distribution package (i.e. spark-notebook.zip)
     mappings in Universal ++= directory("notebooks"),
-
     version in Universal := fullVersion.value,
     version in Docker := fullVersion.value,
     version in Debian := fullVersion.value,
-
     mappings in Docker ++= directory("notebooks")
   )
   .settings(includeFilter in(Assets, LessKeys.less) := "*.less")
@@ -350,6 +336,15 @@ lazy val sparkNotebook = rootProject.enablePlugins(SbtWeb)
   )
   .settings(
     Extra.sparkNotebookSettings
+  )
+  .settings(libraryDependencies ~= (_.map(excludeSpecs2)))
+
+lazy val collector = Project(id="collector", base=file("modules/collector"))
+  .settings(libraryDependencies ++= playDeps)
+  .settings(sharedSettings: _*)
+  .settings(libraryDependencies ++= collectorDeps)
+  .settings(
+    Extra.collectorSettings
   )
   .settings(libraryDependencies ~= (_.map(excludeSpecs2)))
 
@@ -396,8 +391,7 @@ val versionShortWithSpark = Def.setting {
 }
 
 val commonProjSparkDir = sparkVersionTuple match {
-  case _ if Ordering.apply[(Int, Int, Int)].lt(sparkVersionTuple, (2, 3, 0)) =>
-    "spark-pre-2.3"
+  case _ if Ordering.apply[(Int, Int, Int)].lt(sparkVersionTuple, (2, 3, 0)) => "spark-pre-2.3"
   case _ => "spark-post-2.3"
 }
 

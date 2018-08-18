@@ -10,7 +10,8 @@ import notebook.kernel.pfork.{BetterFork, ForkableProcess, ProcessInfo}
 import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 /**
  * Author: Ken
@@ -25,7 +26,7 @@ class RemoteActorProcess extends ForkableProcess {
 
     // Cookie file is optional second argument
     val actualCfg = args.take(2) match {
-      case Seq(_, cookieFile) if cookieFile.size > 0 =>
+      case Seq(_, cookieFile) if cookieFile.nonEmpty =>
         val cookie = FileUtils.readFileToString(new File(cookieFile))
         AkkaConfigUtils.requireCookie(cfg, cookie)
       case _ => cfg
@@ -46,7 +47,7 @@ class RemoteActorProcess extends ForkableProcess {
   }
 
   def waitForExit() {
-    _system.awaitTermination()
+    Await.result(_system.whenTerminated, Duration.Inf)
     println("waitForExit complete")
   }
 }

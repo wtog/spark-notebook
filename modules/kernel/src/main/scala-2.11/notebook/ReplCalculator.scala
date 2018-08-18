@@ -344,10 +344,10 @@ class ReplCalculator(
         case ObjectInfoRequest(code, position) =>
           val completions = repl.objectInfo(code, position)
 
-          val resp = if (completions.length == 0) {
-            ObjectInfoResponse(false, code, "", "")
+          val resp = if (completions.isEmpty) {
+            ObjectInfoResponse(found = false, code, "", "")
           } else {
-            ObjectInfoResponse(true, code, completions.mkString("\n"), "")
+            ObjectInfoResponse(found = true, code, completions.mkString("\n"), "")
           }
 
           sender ! resp

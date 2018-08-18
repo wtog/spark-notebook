@@ -22,3 +22,4 @@ notebooks/temp
 .cache-main
 .cache-tests
 *.swp
+*.ipynb

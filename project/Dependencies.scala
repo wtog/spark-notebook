@@ -150,6 +150,11 @@ object Dependencies {
     ExclusionRule("commons-codec", "commons-codec"),
     ExclusionRule("javax.servlet", "servlet-api"),
     ExclusionRule("javax.servlet", "javax.servlet-api"),
+    ExclusionRule("jline", "jline"),
+    ExclusionRule("com.google.code.gson", "gson"),
+    ExclusionRule("com.google.code.findbugs", "jsr305"),
+    ExclusionRule("io.netty", "netty"),
+    ExclusionRule("io.netty", "netty-all"),
     ExclusionRule("com.google.guava", "guava")
   )
 
@@ -184,7 +189,7 @@ object Dependencies {
   // P.S. Play 2.4 uses guava 18.0; play 2.5 uses 19.0. seems OK for force it.
   val defaultGuavaVersion = sys.props.getOrElse("guava.version", "14.0") // 16.0.1 for cassandra connector 1.6-M1
   val guava = "com.google.guava" % "guava" % defaultGuavaVersion force()
-  val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.7"
+  val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.25"
   val log4j = "log4j" % "log4j" % "1.2.17"
 
   // for aether only
@@ -193,8 +198,9 @@ object Dependencies {
 
   // Viz
   val geometryDeps = Seq(
-    // it uses jackson 2.8.1
     "org.wololo" % "jts2geojson" % "0.8.0" excludeAll(jacksonExclusions: _*)
   ) ++ customJacksonScala
 
+  val collectorDeps = Seq("io.github.wtog" % "web-crawler_2.11" % "0.1.0-SNAPSHOT" excludeAll(ExclusionRule("com.typesafe.akka", "akka-actor_2.11"),
+    ExclusionRule("org.asynchttpclient", "async-http-client"), ExclusionRule("org.apache.httpcomponents", "httpclient")))
 }

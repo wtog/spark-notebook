@@ -49,7 +49,7 @@ libraryDependencies ++= depsToDownloadDeps(scalaBinaryVersion.value, sbtVersion.
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.12"
 
-libraryDependencies += "com.typesafe" % "config" % "1.2.1"
+libraryDependencies += "com.typesafe" % "config" % "1.3.1"
 
 libraryDependencies ++= {
   if(scalaBinaryVersion.value == "2.11") Seq("org.scala-lang.modules" %% "scala-xml" % "1.0.4") else Seq.empty
