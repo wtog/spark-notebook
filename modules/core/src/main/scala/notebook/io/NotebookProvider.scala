@@ -72,7 +72,7 @@ trait NotebookProvider {
         .filter(_.length > 0) //toList fails if listFiles is empty
         .map(_.toList)
         .getOrElse(Nil)
-        .map(f => (f.getName,relativePath(f),f))
+        .map(f => (f.getName, relativePath(f),f))
         .collect {
           case (name, relPath, file) =>
             if (isNotebookFile(file))

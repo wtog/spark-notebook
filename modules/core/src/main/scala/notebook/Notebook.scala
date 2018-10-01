@@ -23,7 +23,8 @@ case class Notebook(
 object Notebook {
   val EXTENSION_SNB_IPYNB = ".snb.ipynb"
   val EXTENSION_SNB = ".snb"
-  val FILE_EXTENSIONS = Seq(EXTENSION_SNB_IPYNB, EXTENSION_SNB)
+  val EXTENSION_SNB_COLLECTOR = ".spider"
+  val FILE_EXTENSIONS = Seq(EXTENSION_SNB_IPYNB, EXTENSION_SNB, EXTENSION_SNB_COLLECTOR)
 
   def notebookName(path: String): String = {
     path match {
@@ -34,7 +35,7 @@ object Notebook {
   }
 
   def isNotebookFile(path: String): Boolean = {
-    FILE_EXTENSIONS.exists(ext => path.endsWith(ext))
+    FILE_EXTENSIONS.exists(ext => path.toLowerCase.endsWith(ext))
   }
 
   def getNewUUID: String = java.util.UUID.randomUUID.toString
