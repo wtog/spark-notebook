@@ -144,9 +144,6 @@ package object command_interpreters {
     import OutputTypeCommand._
 
     override val codeMatcher: CodeMatcherType = {
-      // e.g.
-      // :marker
-      // some_scala_code
       case cellContents if scalaResultMarkers.exists(_.matches(cellContents)) =>
         val matchingMarker = scalaResultMarkers.filter(_.matches(cellContents)).head
         val replCode = cellContents match { case matchingMarker.regex(scalaCode) =>

@@ -1,21 +1,20 @@
-package notebook.server
+package notebook.server.websocket
 
 import akka.actor.{Terminated, _}
+import notebook.{Kernel, ReplCalculator}
 import notebook.client._
-import notebook.Kernel
-import notebook.kernel.repl.common.NameDefinition
+import notebook.repl.NameDefinition
+import notebook.server._
 import org.joda.time.LocalDateTime
 import play.api._
-import play.api.libs.json.Json.{obj, arr}
+import play.api.libs.json.Json.obj
 import play.api.libs.json._
 
-import scala.concurrent._
 import scala.collection.immutable.Queue
 import scala.collection.mutable
+import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.{postfixOps, reflectiveCalls}
-
-case class SessionOperation(actor: ActorRef, cellId: Option[String])
 
 /**
  * Provides a web-socket interface to the Calculator
@@ -32,15 +31,15 @@ class CalcWebSocketService(
   initScripts: List[(String, String)],
   compilerArgs: List[String],
   kernel: Kernel,
-  kernelTimeout: Option[Long]) {
+  kernelTimeout: Option[Long]) extends WebSocketService {
 
   implicit val executor = system.dispatcher
 
-  val calcActor = system.actorOf(Props(new CalcActor))
+  override def socketActor(): ActorRef = system.actorOf(Props(new CalcActor))
 
-  def register(ws: WebSockWrapper) = calcActor ! Register(ws)
+  def register(ws: WebSockWrapper) = socketActor() ! Register(ws)
 
-  def unregister(ws: WebSockWrapper) = calcActor ! Unregister(ws)
+  def unregister(ws: WebSockWrapper) = socketActor() ! Unregister(ws)
 
   class CalcActor extends Actor with ActorLogging {
     private var currentSessionOperations: Queue[SessionOperation] = Queue.empty
@@ -168,7 +167,7 @@ class CalcWebSocketService(
 
       case InterruptCell(killCellId) =>
         currentSessionOperations
-          .filter { case SessionOperation(_, cellId) => cellId == Some(killCellId) }
+          .filter { case SessionOperation(_, cellId) => cellId.contains(killCellId) }
           .foreach { op => calculator.tell(InterruptCellRequest(killCellId), op.actor) }
 
       case InterruptCalculator =>

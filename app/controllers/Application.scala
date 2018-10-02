@@ -10,6 +10,7 @@ import akka.util.Timeout
 import notebook.NBSerializer.Metadata
 import notebook.io.Version
 import notebook.server._
+import notebook.server.websocket.{CalcWebSocketService, CollWebSocketService, WebSocketService}
 import notebook.{GenericFile, NotebookResource, Repository, _}
 import org.pac4j.core.profile.{CommonProfile, ProfileManager}
 import org.pac4j.play.PlayWebContext
@@ -21,7 +22,7 @@ import play.api.libs.iteratee.Concurrent.Channel
 import play.api.libs.iteratee._
 import play.api.libs.json._
 import play.api.mvc._
-import utils.{SbtProjectGenUtils, AppUtils}
+import utils.{AppUtils, SbtProjectGenUtils}
 import utils.Const.UTF_8
 
 import scala.concurrent.duration._
@@ -59,7 +60,7 @@ object Application extends Controller {
 
   private lazy val config = AppUtils.notebookConfig
   private lazy val notebookManager = AppUtils.notebookManager
-  private val kernelIdToCalcService = new collection.concurrent.TrieMap[String, CalcWebSocketService]()
+  private val kernelIdToWebSocketService = new collection.concurrent.TrieMap[String, WebSocketService]()
   private val kernelIdToObservableActor = new collection.concurrent.TrieMap[String, ActorRef]()
   private val clustersActor = kernelSystem.actorOf(Props(NotebookClusters(AppUtils.clustersConf)))
 
@@ -147,8 +148,6 @@ object Application extends Controller {
     Ok(kernelDef)
   }
 
-  // this function takes two optional lists and add the values in the second one
-  // the values are considered to be unique
   private def overrideOptionListDistinctString(x:Option[List[String]], y:Option[List[String]]) = {
     val t = x.getOrElse(List.empty[String])
     val withY =  t ::: (y.getOrElse(List.empty[String]).toSet -- t.toSet).toList
@@ -178,11 +177,11 @@ object Application extends Controller {
     Ok(Json.obj("kernel" → kernelResponse(id)))
   }
 
-  private[this] def newSession(userName: Option[String], kernelId: Option[String] = None, notebookPath: Option[String] = None) = {
+  private[this] def newEtlSession(userName: Option[String], kernelId: Option[String] = None, notebookPath: Option[String] = None) = {
     val existing = for {
       path <- notebookPath
       (id, kernel) <- KernelManager.atPath(path)
-      calcService <- kernelIdToCalcService.get(id)
+      calcService <- kernelIdToWebSocketService.get(id)
     } yield (id, kernel, calcService)
 
     val (kId, kernel, service) = existing.getOrElse {
@@ -276,7 +275,7 @@ object Application extends Controller {
         kernel,
         kernelTimeout = kernelKillTimeout
       )
-      kernelIdToCalcService += kId -> service
+      kernelIdToWebSocketService += kId -> service
       (kId, kernel, service)
     }
 
@@ -284,18 +283,98 @@ object Application extends Controller {
     kernelResponse(Some(kId))
   }
 
-  def createSession() = EditorOnlyAction(parse.tolerantJson) /* → posted as urlencoded form oO */ { implicit request =>
+  private[this] def newCollectSession(userName: Option[String], kernelId: Option[String] = None, notebookPath: Option[String] = None) = {
+    val existing = for {
+      path <- notebookPath
+      (id, kernel) <- KernelManager.atPath(path)
+      calcService <- kernelIdToWebSocketService.get(id)
+    } yield (id, kernel, calcService)
+
+    val (kId, kernel, service) = existing.getOrElse {
+      Logger.info(s"Starting kernel/session because nothing for $kernelId and $notebookPath")
+
+      val kId = kernelId.getOrElse(UUID.randomUUID.toString)
+      val compilerArgs = config.kernel.compilerArgs.toList
+      val initScripts = config.kernel.initScripts.toList
+
+      // Load the notebook → get the metadata
+      val md: Option[Metadata] = for {
+        p <- notebookPath
+        n <- notebookManager.load(p)
+        m <- n.metadata
+      } yield m
+
+      val customDeps: Option[List[String]] =
+        overrideOptionListDistinctString(
+          md.flatMap(_.customDeps),
+          config.overrideConf.deps
+        )
+
+      val customImports: Option[List[String]] =
+        overrideOptionListDistinctString(
+          md.flatMap(_.customImports),
+          config.overrideConf.imports
+        )
+
+      val customArgs: Option[List[String]] =
+        overrideOptionListDistinctString(
+          md.flatMap(_.customArgs),
+          config.overrideConf.args
+        ).map(xs => xs map notebook.util.StringUtils.updateWithVarEnv)
+
+      val impersonatedUser = if (hadoopProxyUserEnabled) userName else None
+
+      val kernel = new Kernel(config.kernel.config.underlying,
+        kernelSystem,
+        kId,
+        AppUtils.isVersioningSupported,
+        notebookPath,
+        Some(
+          customArgs.getOrElse(List.empty[String]) ::: AppUtils.proxy.all.map{ case (k,v) => s"""-D$k=$v"""}
+        ),
+        impersonatedUser,
+        userName,
+        kernelType = Some("collecotr"))
+      KernelManager.add(kId, kernel)
+
+      val service = new CollWebSocketService(kernelSystem,
+        appNameToDisplay(md, notebookPath),
+        customImports,
+        customArgs,
+        initScripts,
+        compilerArgs,
+        kernel,
+        kernelTimeout = kernelKillTimeout
+      )
+      kernelIdToWebSocketService += kId -> service
+      (kId, kernel, service)
+    }
+
+    kernelResponse(Some(kId))
+  }
+
+  def createSession() = EditorOnlyAction(parse.tolerantJson) { implicit request =>
     val json: JsValue = request.body
     val kernelId = Try((json \ "kernel" \ "id").as[String]).toOption
     val notebookPath = Try((json \ "notebook" \ "path").as[String]).toOption
     val currentUserName = getProfile.map(_.getId)
     Logger.info(s"createSession for user: $currentUserName  for NB: $notebookPath")
-    val k = newSession(currentUserName, kernelId, notebookPath)
+
+    val k = getSessionType(currentUserName, kernelId, notebookPath)
+
     Ok(Json.obj("kernel" → k))
   }
 
+  private def getSessionType(currentUserName: Option[String], kernelId: Option[String] = None, notebookPath: Option[String]) = {
+    if (notebookPath.exists(_.contains("collectors"))) {
+      newCollectSession(currentUserName, kernelId, notebookPath)
+    } else {
+      newEtlSession(currentUserName, kernelId, notebookPath)
+    }
+  }
+
   def sessions() = Action {
-    Ok(JsArray(kernelIdToCalcService.keys
+    Ok(JsArray(kernelIdToWebSocketService.keys
       .map { k =>
       KernelManager.get(k).map(l => (k, l))
     }.collect {
@@ -496,7 +575,7 @@ object Application extends Controller {
   }
 
   private[this] def closeKernel(kernelId: String) = {
-    kernelIdToCalcService -= kernelId
+    kernelIdToWebSocketService -= kernelId
 
     KernelManager.get(kernelId).foreach { k =>
       Logger.info(s"Closing kernel $kernelId")
@@ -505,11 +584,9 @@ object Application extends Controller {
   }
 
   def openKernel(kernelId: String, sessionId: String) = ImperativeWebsocket.using[JsValue](
-    onOpen = channel => WebSocketKernelActor.props(channel, kernelIdToCalcService(kernelId), sessionId),
+    onOpen = channel => WebSocketKernelActor.props(channel, kernelIdToWebSocketService(kernelId), sessionId),
     onMessage = (msg, ref) => ref ! msg,
     onClose = (channel, ref) => {
-      // try to not close the kernel to allow long live sessions
-      // closeKernel(kernelId)
       Logger.info(s"Closing websockets for kernel $kernelId")
       ref ! akka.actor.PoisonPill
     }
@@ -532,7 +609,7 @@ object Application extends Controller {
     val notebookPath = k.flatMap(_.notebookPath).getOrElse(p)
     val currentUserName = getProfile.map(_.getId)
     Logger.info(s"restartKernel by user: $currentUserName NB: $notebookPath")
-    Ok(newSession(userName = currentUserName, notebookPath = Some(notebookPath)))
+    Ok(getSessionType(currentUserName = currentUserName, notebookPath = Some(notebookPath)))
   }
 
   def listCheckpoints(snb: String) = Action { request =>
@@ -544,7 +621,6 @@ object Application extends Controller {
   }
 
   def restoreCheckpoint(snb:String, id:String) = Action { request =>
-    //TODO → retrieve checkpoint and overwritte the notebook locally (until next checkpoint)
     val path = URLDecoder.decode(snb, UTF_8)
     notebookManager.restoreCheckpoint(path, id)
     // the notebook.js script will reload the notebook from the restored file using `load` again,

@@ -1,13 +1,10 @@
 package notebook
 
-import java.io.File
-
 import akka.actor.{Actor, ActorRef, Props}
 import com.datafellas.utils._
 import notebook.client._
 import notebook.repl.command_interpreters.combineIntepreters
 import notebook.repl._
-import notebook.util.CoursierDeps
 import org.joda.time.LocalDateTime
 import org.sonatype.aether.repository.RemoteRepository
 
@@ -20,14 +17,10 @@ import scala.concurrent.Future
  * @param customSparkConf Map configuring the notebook (spark configuration).
  * @param compilerArgs Command line arguments to pass to the REPL compiler
  */
-class ReplCalculator(
+class ReplCollector(
   notebookName:String,
-  customLocalRepo:Option[String],
-  customRepos:Option[List[String]],
-  customDeps:Option[List[String]],
   customImports:Option[List[String]],
   customArgs:Option[List[String]],
-  customSparkConf:Option[Map[String, String]],
   remoteActor:ActorRef,
   initScripts: List[(String, String)],
   compilerArgs: List[String]
@@ -39,84 +32,14 @@ class ReplCalculator(
   private val authRegex = """(?s)^\s*\(([^\)]+)\)\s*$""".r
   private val credRegex = """"([^"]+)"\s*,\s*"([^"]+)"""".r //"
 
-  private def remoreRepo(r:String):(String, RemoteRepository) = {
-    val id::tpe::url::remaining = r.split("%").toList
-    val rest = remaining.map(_.trim) match {
-      case Nil => remaining
-      case "maven"::r => r //skip the flavor → always maven in 2.11
-      case xs => xs
-    }
-    val (username, password):(Option[String],Option[String]) = rest.headOption.map {
-      case authRegex(usernamePassword) =>
-        val (username, password) = usernamePassword match {
-          case credRegex(username, password) => (username, password)
-        }
-        val u = if (username.startsWith("$")) sys.env.get(username.tail).get else username
-        val p = if (password.startsWith("$")) sys.env.get(password.tail).get else password
-        (Some(u), Some(p))
-      case _ => (None, None)
-    }.getOrElse((None, None))
-    val rem = Repos(id.trim,tpe.trim,url.trim,username,password)
-    val logR = r.replaceAll("\"", "\\\\\"")
-    (logR, rem)
-  }
-
-  var remotes:List[RemoteRepository] = customRepos.getOrElse(List.empty[String]).map(remoreRepo _).map(_._2) :::
-    List(Repos.mavenLocal, Repos.central, Repos.sparkPackages, Repos.oss)
-
-  var repo:File = customLocalRepo.map { x =>
-                    new File(notebook.util.StringUtils.updateWithVarEnv(x))
-                  }.getOrElse {
-                    val tmp = new File(System.getProperty("java.io.tmpdir"))
-
-                    val snb = new File(tmp, "spark-notebook")
-                    if (!snb.exists) snb.mkdirs
-
-                    val aether = new File(snb, "aether")
-                    if (!aether.exists) aether.mkdirs
-
-                    val r = new File(aether, java.util.UUID.randomUUID.toString)
-                    if (!r.exists) r.mkdirs
-
-                    r
-                  }
-
-  def codeRepo = new File(repo, "code")
-
-  val (depsJars, depsScript):(List[String],(String, ()=>String)) = customDeps.map { d =>
-    val customDeps = d.mkString("\n")
-    val deps = CoursierDeps.script(customDeps, remotes, repo, notebook.BuildInfo.xSparkVersion).toOption.getOrElse(List.empty[String])
-    (deps, ("deps", () => s"""
-                    |val CustomJars = ${ deps.mkString("Array(\"", "\",\"", "\")").replace("\\","\\\\") }
-                    |
-                    """.stripMargin))
-  }.getOrElse((List.empty[String], ("deps", () => "val CustomJars = Array.empty[String]\n")))
-
   val ImportsScripts = ("imports", () => customImports.map(_.mkString("\n") + "\n").getOrElse("\n"))
 
-  private var _repl:Option[ReplT] = None
+  private lazy val repl = ReplT.create(replClazzPath = "io.github.wtog.collector.Repl", compilerArgs)
 
-  private def repl: ReplT = _repl getOrElse {
-    val r = ReplT.create(opts = compilerArgs, deps = depsJars)
-    _repl = Some(r)
-    r
-  }
-
-  private var _presentationCompiler: Option[PresentationCompiler] = None
-
-  private def presentationCompiler: PresentationCompiler = _presentationCompiler getOrElse {
-    val r = new PresentationCompiler(depsJars)
-    _presentationCompiler = Some(r)
-    r
-  }
-
-  val chat = new notebook.front.gadgets.Chat()
-
-  // Make a child actor so we don't block the execution on the main thread, so that interruption can work
   private val executor = context.actorOf(Props(new Actor {
     implicit val ec = context.dispatcher
 
-    private var queue:Queue[(ActorRef, ExecuteRequest)] = Queue.empty
+    private var queue: Queue[(ActorRef, ExecuteRequest)] = Queue.empty
     private var currentlyExecutingTask: Option[Future[(String, EvaluationResult)]] = None
 
     def eval(b: => String, notify:Boolean=true)(success: => String = "", failure: String=>String=(s:String)=>"Error evaluating " + b + ": "+ s) {
@@ -140,7 +63,6 @@ class ReplCalculator(
       case "process-next" =>
         log.debug(s"Processing next asked, queue is ${queue.size} length now")
         currentlyExecutingTask = None
-
         if (queue.nonEmpty) { //queue could be empty if InterruptRequest was asked!
           log.debug("Dequeuing execute request current size: " + queue.size)
           val (executeRequest, queueTail) = queue.dequeue
@@ -150,10 +72,9 @@ class ReplCalculator(
           execute(ref, er)
         }
 
-      case er@ExecuteRequest(_, _, code) =>
+      case er @ ExecuteRequest(_, _, code) =>
         log.debug("Enqueuing execute request at: " + queue.size)
         queue = queue.enqueue((sender(), er))
-
         // if queue contains only the new task, and no task is currently executing, execute it straight away
         // otherwise the execution will start once the evaluation of earlier cell(s) finishes
         if (currentlyExecutingTask.isEmpty && queue.size == 1) {
@@ -167,7 +88,6 @@ class ReplCalculator(
         }
         log.debug(s"Canceling $killCellId jobs still in queue (if any):\n $jobsInQueueToKill")
         queue = nonAffectedJobs
-
         log.debug(s"Interrupting the cell: $killCellId")
         val jobGroupId = JobTracking.jobGroupId(killCellId)
         // make sure sparkContext is already available!
@@ -179,12 +99,10 @@ class ReplCalculator(
             msg => thisSender ! StreamResponse(msg, "stdout")
           )
         }
-
         // StreamResponse shows error msg
         sender() ! StreamResponse(s"The cell was cancelled.\n", "stderr")
         // ErrorResponse to marks cell as ended
         sender() ! ErrorResponse(s"The cell was cancelled.\n", incomplete = false)
-
 
       case InterruptRequest =>
         log.debug("Interrupting the spark context")
@@ -207,10 +125,9 @@ class ReplCalculator(
       val thisSelf = self
       val thisSender = sender
       val result = scala.concurrent.Future {
-        // this future is required to allow InterruptRequest messages to be received and process
-        // so that spark jobs can be killed and the hand given back to the user to refine their tasks
         val cellId = er.cellId
         def replEvaluate(code:String, cellId:String) = {
+          println(code)
           val cellResult = try {
            repl.evaluate(s"""
               |globalScope.sparkContext.setJobGroup("${JobTracking.jobGroupId(cellId)}", "${JobTracking.jobDescription(code, start)}")
@@ -248,28 +165,9 @@ class ReplCalculator(
   }))
 
   def preStartLogic() {
-    log.info("ReplCalculator preStart")
+    log.info("RepCollector preStart")
 
     val dummyScript = ("dummy", () => s"""val dummy = ();\n""")
-    val SparkHookScript = ("class server", () => s"""@transient val _5C4L4_N0T3800K_5P4RK_HOOK = "${repl.classServerUri.get.replaceAll("\\\\", "\\\\\\\\")}";\n""")
-
-    // Must escape last remaining '\', which could be for windows paths.
-    val nbName = notebookName.replaceAll("\"", "").replace("\\", "\\\\")
-
-    val SparkConfScript = {
-      val m = customSparkConf .getOrElse(Map.empty[String, String])
-      m .map{ case (k, v) =>
-          "( \"" + k + "\"  → \"" + v + "\" )"
-        }.mkString(",")
-    }
-
-    val CustomSparkConfFromNotebookMD = ("custom conf", () => s"""
-      |@transient val notebookName = "$nbName"
-      |@transient val _5C4L4_N0T3800K_5P4RK_C0NF:Map[String, String] = Map(
-      |  $SparkConfScript
-      |)\n
-      """.stripMargin
-    )
 
     def eval(script: () => String): Option[String] = {
       val sc = script()
@@ -288,11 +186,10 @@ class ReplCalculator(
       } else None
     }
 
-    val allInitScrips: List[(String, () => String)] = dummyScript :: SparkHookScript :: depsScript :: ImportsScripts :: CustomSparkConfFromNotebookMD :: initScripts.map(x => (x._1, () => x._2))
+    val allInitScrips: List[(String, () => String)] = dummyScript :: ImportsScripts :: initScripts.map(x => (x._1, () => x._2))
     for ((name, script) <- allInitScrips) {
       log.info(s" INIT SCRIPT: $name")
       eval(script).foreach { sc =>
-        presentationCompiler.addScripts(sc)
       }
     }
   }
@@ -303,26 +200,24 @@ class ReplCalculator(
   }
 
   override def postStop() {
-    log.info("ReplCalculator postStop")
-    presentationCompiler.stop()
+    log.info("RepCollector postStop")
     super.postStop()
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]) {
-    log.info("ReplCalculator preRestart " + message)
+    log.info("RepCollector preRestart " + message)
     reason.printStackTrace()
     super.preRestart(reason, message)
   }
 
   override def postRestart(reason: Throwable) {
-    log.info("ReplCalculator postRestart")
+    log.info("RepCollector postRestart")
     reason.printStackTrace()
     super.postRestart(reason)
   }
 
   def receive = {
     case msgThatShouldBeFromTheKernel =>
-
       msgThatShouldBeFromTheKernel match {
         case req @ InterruptCellRequest(_) =>
           executor.forward(req)
@@ -333,11 +228,7 @@ class ReplCalculator(
         case req @ ExecuteRequest(_, _, code) => executor.forward(req)
 
         case CompletionRequest(line, cursorPosition) =>
-          // REPL completions seem broken. but presentationCompiler finally +/- works in 2.11
-          // val (matched, candidates) = repl.complete(line, cursorPosition)
-          val (matched, candidates) = presentationCompiler.complete(line, cursorPosition)
-
-          sender ! CompletionResponse(cursorPosition, candidates, matched)
+          sender ! CompletionResponse(cursorPosition, matchedText = "")
 
         case ObjectInfoRequest(code, position) =>
           val completions = repl.objectInfo(code, position)

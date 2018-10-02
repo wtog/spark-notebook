@@ -1,28 +1,31 @@
-package notebook.kernel
+package io.github.wtog.collector
 
 import java.io.{PrintWriter, StringWriter}
 import java.lang.reflect.Method
 import java.net.URLDecoder
 import java.util
 
-import _root_.jline.console.completer.{ArgumentCompleter, Completer}
+import jline.console.completer.{ArgumentCompleter, Completer}
 import notebook.front.Widget
 import notebook.repl._
-import notebook.util.Match
+import notebook.util.{InterpreterUtil, Match}
 import org.apache.commons.lang3.exception.ExceptionUtils
-import org.apache.spark.SparkConf
+import scala.tools.nsc.interpreter.Results.{Error, Incomplete => ReplIncomplete, Success => ReplSuccess}
 
-import scala.collection.JavaConversions._
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interpreter.Completion.{Candidates, ScalaCompleter}
-import scala.tools.nsc.interpreter.Results.{Error, Incomplete => ReplIncomplete, Success => ReplSuccess}
-import scala.tools.nsc.interpreter._
+import scala.tools.nsc.interpreter.{IMain, JLineCompletion, JList, Parsed}
+import scala.tools.nsc.interpreter.Results.Error
 import scala.tools.nsc.interpreter.jline.JLineDelimiter
 import scala.util.Try
 import scala.util.control.NonFatal
 import scala.xml.{NodeSeq, Text}
 
-
+/**
+  * @author : tong.wang
+  * @since : 10/2/18 10:26 PM
+  * @version : 1.0.0
+  */
 class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends ReplT {
   val LOG = org.slf4j.LoggerFactory.getLogger(classOf[Repl])
 
@@ -30,7 +33,6 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
 
   private lazy val stdoutBytes = new ReplOutputStream
   private lazy val stdout = new PrintWriter(stdoutBytes)
-  private var loop:org.apache.spark.repl.HackSparkILoop = _
   private var _classServerUri:Option[String] = None
 
   private var _initFinished: Boolean = false
@@ -51,20 +53,10 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
 
     if (compilerOpts.nonEmpty) settings.processArguments(compilerOpts, processAll = false)
 
-    val conf = new SparkConf()
-
     val tmp = System.getProperty("java.io.tmpdir")
-    val rootDir = conf.get("spark.repl.classdir", tmp)
-    val outputDir = org.apache.spark.Boot.createTempDir(rootDir, "spark-notebook-repl")
-
-
-
-
-    settings.processArguments(List("-Yrepl-class-based", "-Yrepl-outdir", s"${outputDir.getAbsolutePath}", "-Yrepl-sync"), processAll = true)
 
     // fix for #52
     settings.usejavacp.value = false
-
 
     // fix for #52
     val urls: IndexedSeq[String] = {
@@ -99,9 +91,6 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     // LOG the classpath
     // debug the classpath → settings.Ylogcp.value = true
 
-    //val i = new HackIMain(settings, stdout)
-    loop = new org.apache.spark.repl.HackSparkILoop(stdout, outputDir)
-
     val fps = jars.map{ jar =>
 
       val f = scala.tools.nsc.io.File(jar).normalize
@@ -109,10 +98,7 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
       f.path
     }
     settings.classpath.value=(classpath.distinct ::: fps).mkString(java.io.File.pathSeparator)
-
-    loop.process(settings)
-    _classServerUri = Some(loop.outputDir.getAbsolutePath)
-    loop.intp
+    new IMain(settings, stdout)
   }
 
   private lazy val completion = {
@@ -136,13 +122,6 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     arg
   }
 
-  private lazy val stringCompletor = StringCompletorResolver.completor
-
-  private def getCompletions(line: String, cursorPosition: Int) = {
-    val candidates = new util.ArrayList[CharSequence]()
-    argCompletor.complete(line, cursorPosition, candidates)
-    candidates map { _.toString } toList
-  }
 
   private def listDefinedTerms(request: interp.Request): List[NameDefinition] = {
     request.handlers.flatMap { h =>
@@ -174,28 +153,28 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
         // remove some crap
         Some(
           tpe
-          .replace("iwC$", "")
-          .replaceAll("^\\(\\)" , "") // 2.11 return types prefixed, like `()Person`
+            .replace("iwC$", "")
+            .replaceAll("^\\(\\)" , "") // 2.11 return types prefixed, like `()Person`
         )
     }
   }
 
 
   /**
-   * Evaluates the given code.  Swaps out the `println` OutputStream with a version that
-   * invokes the given `onPrintln` callback everytime the given code somehow invokes a
-   * `println`.
-   *
-   * Uses compile-time implicits to choose a renderer.  If a renderer cannot be found,
-   * then just uses `toString` on result.
-   *
-   * I don't think this is thread-safe (largely because I don't think the underlying
-   * IMain is thread-safe), it certainly isn't designed that way.
-   *
-   * @param code
-   * @param onPrintln
-   * @return result and a copy of the stdout buffer during the duration of the execution
-   */
+    * Evaluates the given code.  Swaps out the `println` OutputStream with a version that
+    * invokes the given `onPrintln` callback everytime the given code somehow invokes a
+    * `println`.
+    *
+    * Uses compile-time implicits to choose a renderer.  If a renderer cannot be found,
+    * then just uses `toString` on result.
+    *
+    * I don't think this is thread-safe (largely because I don't think the underlying
+    * IMain is thread-safe), it certainly isn't designed that way.
+    *
+    * @param code
+    * @param onPrintln
+    * @return result and a copy of the stdout buffer during the duration of the execution
+    */
   def evaluate(code: String,
                onPrintln: String => Unit = _ => (),
                onNameDefinion: NameDefinition => Unit  = _ => ()
@@ -233,11 +212,11 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
                 |  val rendered: _root_.notebook.front.Widget = try { %s } catch { case t:Throwable => _root_.notebook.front.widgets.html(<div class='alert alert-danger'><div>Exception in implicit renderer: {t.getMessage}</div><pre>{t.getStackTrace.mkString("\n")}</pre></div>) }
                 |  %s
                 |}""".stripMargin.format(
-                  request.importsPreamble,
-                  request.fullPath(lastHandler.definesTerm.get.toString),
-                  request.importsTrailer
-                )
-                LOG.debug(renderObjectCode)
+                request.importsPreamble,
+                request.fullPath(lastHandler.definesTerm.get.toString),
+                request.importsTrailer
+              )
+            LOG.debug(renderObjectCode)
             if (line.compile(renderObjectCode)) {
               try {
                 // spark looks for the compressor codec from the context class loader...
@@ -342,53 +321,6 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     interp.close() // this will close the repl class server, which is needed in order to reuse `-Dspark.replClassServer.port`!
     val r = new Repl(compilerOpts, newJars:::jars)
     (r, () => prevCode foreach (c => r.evaluate(c, _ => ())))
-  }
-
-  override def complete(line: String, cursorPosition: Int): (String, Seq[Match]) = {
-    def literalCompletion(arg: String) = {
-      val LiteralReg = """.*"([\w/]+)""".r
-      arg match {
-        case LiteralReg(literal) => Some(literal)
-        case _ => None
-      }
-    }
-
-    // CY: Don't ask to explain why this works. Look at JLineCompletion.JLineTabCompletion.complete.mkDotted
-    // The "regularCompletion" path is the only path that is (likely) to succeed
-    // so we want access to that parsed version to pull out the part that was "matched"...
-    // ...just...trust me.
-    val delim = argCompletor.getDelimiter
-    val list = delim.delimit(line, cursorPosition)
-    val bufferPassedToCompletion = list.getCursorArgument
-    val actCursorPosition = list.getArgumentPosition
-    val parsed = Parsed.dotted(bufferPassedToCompletion, actCursorPosition) // withVerbosity verbosity
-    val matchedText = bufferPassedToCompletion.takeRight(actCursorPosition - parsed.position)
-
-    literalCompletion(bufferPassedToCompletion) match {
-      case Some(literal) =>
-        // strip any leading quotes
-        stringCompletor.complete(literal)
-      case None =>
-        val candidates = getCompletions(line, cursorPosition)
-
-        (matchedText, if (candidates.nonEmpty && candidates.head.isEmpty) {
-          List()
-        } else {
-          candidates.map(Match(_))
-        })
-    }
-  }
-
-  override def objectInfo(line: String, position:Int): Seq[String] = {
-    // CY: The REPL is stateful -- it isn't until you ask to complete
-    // the thing twice does it give you the method signature (i.e. you
-    // hit tab twice).  So we simulate that here... (nutty, I know)
-    getCompletions(line, position)
-    getCompletions(line, position)
-  }
-
-  override def sparkContextAvailable: Boolean = {
-    interp.allImportedNames.exists(_.toString == "sparkContext")
   }
 
   def stop(): Unit = {

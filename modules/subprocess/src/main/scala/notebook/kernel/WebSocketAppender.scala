@@ -18,7 +18,7 @@ class WebSocketAppender extends Actor {
   def receive = {
     case r:ActorRef =>
       //debug --- println("Received ref in WebSocketAppender : " + r + " ---  current actor ref: " + ref)
-      if (ref == None) {
+      if (ref.isEmpty) {
         ref = Some(r)
         org.apache.log4j.Logger.getRootLogger().addAppender(appender)
       } else {

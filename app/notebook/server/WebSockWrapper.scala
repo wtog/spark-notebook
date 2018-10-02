@@ -36,7 +36,7 @@ class WebSockWrapperImpl(
     newHeader.get
   }
 
-  def send(header: JsValue, __session: String /*ignored in favor of session_id!!!*/ ,
+  def send(header: JsValue, __session: String,
     msgType: String, channel: String, content: JsValue) {
     val respJson = Json.obj(
       "channel" -> channel,

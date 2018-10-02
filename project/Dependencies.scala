@@ -197,4 +197,17 @@ object Dependencies {
     "org.wololo" % "jts2geojson" % "0.8.0" excludeAll(jacksonExclusions: _*)
   ) ++ customJacksonScala
 
+  val collectorDeps = Seq("io.github.wtog" % "web-crawler_2.11" % "0.1.0-SNAPSHOT" excludeAll(
+    ExclusionRule("com.typesafe.akka", "akka-actor_2.11"),
+    ExclusionRule("io.netty", "netty-codec-http"),
+    ExclusionRule("io.netty", "netty-handler"),
+    ExclusionRule("io.netty", "netty-resolver"),
+    ExclusionRule("io.netty", "netty-resolver-dns"),
+    ExclusionRule("io.netty", "netty-transport"),
+    ExclusionRule("io.netty", "netty-codec-socks"),
+    ExclusionRule("io.netty", "netty-codec-dns"),
+    ExclusionRule("io.netty", "netty-codec"),
+    ExclusionRule("io.netty", "netty-buffer"),
+    ExclusionRule("io.netty", "netty-handler-proxy"),
+    ExclusionRule("io.netty", "netty-common")))
 }

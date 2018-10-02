@@ -24,7 +24,8 @@ class Kernel(
   notebookPath_ : Option[String] = None,
   customArgs:Option[List[String]],
   impersonatedUser: Option[String] = None,
-  authUser: Option[String] = None
+  authUser: Option[String] = None,
+  kernelType: Option[String] = None
 ) {
   private[this] var _notebookPath = notebookPath_
 
@@ -49,7 +50,6 @@ class Kernel(
   }
 
   class ExecutionManager extends Actor with ActorLogging {
-    // These get filled in before we ever receive messages
     private var remoteActorSystemm: RemoteActorSystem = null
 
     override def preStart() {
@@ -87,7 +87,7 @@ object KernelManager {
 
   def apply(id: String) = kernels(id)
 
-  def atPath(path: String) = kernels.find { case (id, k) => k.notebookPath.exists(_ == path) }
+  def atPath(path: String) = kernels.find { case (id, k) => k.notebookPath.contains(path) }
 
   def add(id: String, kernel: Kernel) {
     kernels += id -> kernel

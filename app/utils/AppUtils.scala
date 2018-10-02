@@ -17,7 +17,7 @@ object AppUtils {
   lazy val kernelSystem = ActorSystem(
     "NotebookServer",
     nbServerConf,
-    play.api.Play.classloader // todo more detail, this resolves the Play classloader problems w/ remoting
+    play.api.Play.classloader
   )
 
   def isVersioningSupported = notebookManager.provider.isVersioningSupported

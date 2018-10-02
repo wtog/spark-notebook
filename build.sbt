@@ -17,7 +17,7 @@ play.sbt.PlayImport.PlayKeys.playDefaultPort := 9001
 
 updateOptions := updateOptions.value.withCachedResolution(true)
 
-maintainer := DockerProperties.maintainer //Docker
+maintainer := DockerProperties.maintainer
 
 enablePlugins(UniversalPlugin)
 
@@ -284,7 +284,7 @@ lazy val sbtProjectGenerator = Project(id = "sbt-project-generator", base = file
   sbtDependencyManager,
   sparkNotebookCore,
   gitNotebookProvider
-) // FIXME: buildInfoKeys is now repeated
+)
   .settings(buildInfoSettings: _*)
   .settings(
     sourceGenerators in Compile += buildInfo,
@@ -323,20 +323,16 @@ def rootProject = {
 lazy val sparkNotebook = rootProject.enablePlugins(SbtWeb)
   // https://www.playframework.com/documentation/2.5.x/SettingsLogger#Using-a-Custom-Logging-Framework
   .disablePlugins(PlayLogback)
-  .aggregate(sparkNotebookCore, gitNotebookProvider, sbtDependencyManager, sbtProjectGenerator, subprocess, observable, common, spark, kernel)
-  .dependsOn(sparkNotebookCore, gitNotebookProvider, subprocess, observable, sbtProjectGenerator, common, spark, kernel)
+  .aggregate(sparkNotebookCore, gitNotebookProvider, sbtDependencyManager, sbtProjectGenerator, subprocess, observable, common, spark, kernel, collector)
+  .dependsOn(sparkNotebookCore, gitNotebookProvider, subprocess, observable, sbtProjectGenerator, common, spark, kernel, collector)
   .settings(sharedSettings: _*)
   .settings(
-    bashScriptExtraDefines +=
-      s"""export ADD_JARS="$${ADD_JARS},$${lib_dir}/$$(ls $${lib_dir} | grep ${organization.value}.common | head)"""",
-
+    bashScriptExtraDefines += s"""export ADD_JARS="$${ADD_JARS},$${lib_dir}/$$(ls $${lib_dir} | grep ${organization.value}.common | head)"""",
     // configure the "universal" distribution package (i.e. spark-notebook.zip)
     mappings in Universal ++= directory("notebooks"),
-
     version in Universal := fullVersion.value,
     version in Docker := fullVersion.value,
     version in Debian := fullVersion.value,
-
     mappings in Docker ++= directory("notebooks")
   )
   .settings(includeFilter in(Assets, LessKeys.less) := "*.less")
@@ -376,8 +372,7 @@ lazy val subprocess = Project(id="subprocess", base=file("modules/subprocess"))
 
 
 lazy val observable = Project(id = "observable", base = file("modules/observable"))
-  .dependsOn(subprocess)
-  .dependsOn(sparkNotebookCore)
+  .dependsOn(subprocess, sparkNotebookCore)
   .settings(
     libraryDependencies ++= Seq(
       akkaRemote,
@@ -483,6 +478,14 @@ lazy val kernel = Project(id = "kernel", base = file("modules/kernel"))
     libraryDependencies += scalaTest,
     unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / ("scala-" + scalaBinaryVersion.value)
   )
+  .settings(sharedSettings: _*)
+  .settings(
+    Extra.kernelSettings
+  )
+
+lazy val collector = Project(id = "collector", base = file("modules/collector"))
+  .dependsOn(common, subprocess, observable)
+  .settings(libraryDependencies ++= collectorDeps)
   .settings(sharedSettings: _*)
   .settings(
     Extra.kernelSettings

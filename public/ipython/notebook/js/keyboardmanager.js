@@ -47,9 +47,6 @@ define([
         Object.seal(this);
     };
 
-
-
-
     /**
      * Return a dict of common shortcut
      * @method get_default_common_shortcuts

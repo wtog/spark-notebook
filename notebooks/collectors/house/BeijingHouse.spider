@@ -1,0 +1,50 @@
+{
+  "metadata" : {
+    "id" : "90b545d1-3263-46ba-b9e9-f885e8a31776",
+    "name" : "Beijing House Spider",
+    "user_save_timestamp" : "1970-01-01T01:00:00.000Z",
+    "auto_save_timestamp" : "2015-01-10T00:02:12.659Z",
+    "language_info" : {
+      "name" : "scala",
+      "file_extension" : "scala",
+      "codemirror_mode" : "text/x-scala"
+    },
+    "trusted" : true,
+    "sparkNotebook" : null,
+    "customLocalRepo" : null,
+    "customRepos" : null,
+    "customDeps" : null,
+    "customImports" : null,
+    "customArgs" : null,
+    "customSparkConf" : null,
+    "customVars" : null
+  },
+  "cells" : [ {
+    "metadata" : {
+      "id" : "44C028B12E234BD88A96264AEEC2E801"
+    },
+    "cell_type" : "markdown",
+    "source" : "# Beijing House spider"
+  }, {
+    "metadata" : {
+      "trusted" : true,
+      "input_collapsed" : false,
+      "collapsed" : false,
+      "id" : "051E00657F2041DD8A874D89566D9D2C"
+    },
+    "cell_type" : "code",
+    "source" : [ "import io.github.wtog.processor.{ Page, PageProcessor, RequestHeaders }\n", "\n", "final case class BaiduPageProcessor() extends PageProcessor {\n", "\n", "  override def process(page: Page): Unit = {\n", "    val document = page.jsoupParser\n", "    page.addPageResultItem(Map(\"title\" -> document.title()))\n", "    page.addTargetRequest(\"http://www.baidu.com\")\n", "  }\n", "\n", "  override def requestHeaders: RequestHeaders = {\n", "    RequestHeaders(\n", "      domain = \"www.baidu.com\",\n", "      headers = Some(Map(\"Content-Type\" -> \"text/html; charset=GB2312\")), useProxy = true)\n", "  }\n", "\n", "  override def targetUrls: List[String] = {\n", "    List(\"http://www.baidu.com\")\n", "  }\n", "}\n" ],
+    "outputs" : [ ]
+  }, {
+    "metadata" : {
+      "trusted" : true,
+      "input_collapsed" : false,
+      "collapsed" : true,
+      "id" : "62E24298447748AD8B0BC640ED2EEB13"
+    },
+    "cell_type" : "code",
+    "source" : [ "" ],
+    "outputs" : [ ]
+  } ],
+  "nbformat" : 4
+}

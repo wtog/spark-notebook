@@ -1,4 +1,4 @@
-package notebook.kernel
+package notebook.repl
 
 import xml.NodeSeq
 

@@ -1,12 +1,14 @@
-package notebook.kernel.repl.common
+package notebook.repl
 
 import java.io.ByteArrayOutputStream
 
-import scala.concurrent.{Future, Promise}
-
-import notebook.kernel.EvaluationResult
 import notebook.util.Match
 
+/**
+  * @author : tong.wang
+  * @since : 10/2/18 9:10 PM
+  * @version : 1.0.0
+  */
 case class NameDefinition(name: String, tpe: String, references: List[String]) {
   def definesType: Boolean = {
     tpe == NameDefinition.TYPE_DEFINITION
@@ -45,25 +47,21 @@ trait ReplT {
 
   def addCp(newJars:List[String]): (ReplT, () => Unit)
   def classServerUri: Option[String]
-  def complete(line: String, cursorPosition: Int): (String, Seq[Match])
-  def evaluate(code: String,
-               onPrintln: String => Unit = _ => (),
-               onNameDefinion: NameDefinition => Unit  = _ => ()
-              ): (EvaluationResult, String)
+  def complete(line: String, cursorPosition: Int): (String, Seq[Match]) = ("", Seq.empty[Match])
+  def evaluate(code: String, onPrintln: String => Unit = _ => (), onNameDefinion: NameDefinition => Unit  = _ => ()): (EvaluationResult, String)
   def getTypeNameOfTerm(termName: String): Option[String]
   def setInitFinished(): Unit
-  def objectInfo(line: String, position:Int): Seq[String]
-  def sparkContextAvailable: Boolean
+  def objectInfo(line: String, position:Int): Seq[String] = Seq.empty[String]
+  def sparkContextAvailable: Boolean = false
   def stop(): Unit
-
 }
 
 object ReplT {
-  def create(opts:List[String], deps:List[String]):ReplT = {
-    val replClass = getClass.getClassLoader.loadClass("notebook.kernel.Repl")
+  def create(replClazzPath: String = "notebook.kernel.Repl", opts:List[String], deps:List[String] = List.empty[String]): ReplT = {
+    val replClass = getClass.getClassLoader.loadClass(replClazzPath)
     replClass.getConstructor(classOf[List[String]], classOf[List[String]])
-              .newInstance(opts, deps)
-              .asInstanceOf[ReplT]
+      .newInstance(opts, deps)
+      .asInstanceOf[ReplT]
   }
 }
 
@@ -79,7 +77,7 @@ object ReplHelpers {
       .appendSuffix("m")
       .appendSecondsWithOptionalMillis
       .appendSuffix("s")
-      .toFormatter;
-    formatter.print(duration.toPeriod());
+      .toFormatter
+    formatter.print(duration.toPeriod())
   }
 }

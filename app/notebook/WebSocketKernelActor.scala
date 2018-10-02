@@ -5,35 +5,33 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor._
 import notebook.client._
 import notebook.server._
+import notebook.server.websocket.WebSocketService
 import play.api.libs.iteratee.Concurrent
 import play.api.libs.json._
 
-/**
- * re
- */
 object WebSocketKernelActor {
   def props(
     channel: Concurrent.Channel[JsValue],
-    calcService: CalcWebSocketService,
+    webSocketService: WebSocketService,
     session_id: String)(implicit system: ActorSystem): ActorRef = {
-    system.actorOf(Props(new WebSocketKernelActor(channel, calcService, session_id)))
+    system.actorOf(Props(new WebSocketKernelActor(channel, webSocketService, session_id)))
   }
 }
 
 class WebSocketKernelActor(
   channel: Concurrent.Channel[JsValue],
-  val calcService: CalcWebSocketService,
+  val webSocketService: WebSocketService,
   session_id: String)(implicit system: ActorSystem) extends Actor with akka.actor.ActorLogging {
 
   private lazy val executionCounter = new AtomicInteger(0)
   private lazy val ws = new WebSockWrapperImpl(channel, session_id)
 
   override def preStart() = {
-    calcService.register(ws)
+    webSocketService.register(ws)
   }
 
   override def postStop() = {
-    calcService.unregister(ws)
+    webSocketService.unregister(ws)
   }
 
   /**
@@ -68,26 +66,26 @@ class WebSocketKernelActor(
               "extension" → "scala"
             )
           )
-          calcService.calcActor ! WebUIReadyNotification(ws)
+          webSocketService.socketActor() ! WebUIReadyNotification(ws)
         case JsString("interrupt_cell_request") =>
           val JsString(cellId) = (content \ "cell_id").get
-          calcService.calcActor ! InterruptCell(cellId)
+          webSocketService.socketActor() ! InterruptCell(cellId)
         case JsString("interrupt_request") =>
-          calcService.calcActor ! InterruptCalculator
+          webSocketService.socketActor() ! InterruptCalculator
         case JsString("execute_request") =>
           val JsString(cellId) = (content \ "cell_id").get
           val JsString(code) = (content \ "code").get
           val execCounter = executionCounter.incrementAndGet()
-          calcService.calcActor ! SessionRequest(header, session, ExecuteRequest(cellId, execCounter, code))
+          webSocketService.socketActor() ! SessionRequest(header, session, ExecuteRequest(cellId, execCounter, code))
         case JsString("complete_request") =>
           val JsString(line) = (content \ "code").get
           val JsNumber(cursorPos) = (content \ "cursor_pos").get
-          calcService.calcActor ! SessionRequest(header, session, CompletionRequest(line, cursorPos.toInt))
+          webSocketService.socketActor() ! SessionRequest(header, session, CompletionRequest(line, cursorPos.toInt))
         case JsString("inspect_request") =>
           val JsString(code) = (content \ "code").get
           val JsNumber(position) = (content \ "cursor_pos").get
-          val JsNumber(detailLevel) = (content \ "detail_level").get //0,1,2,3
-          calcService.calcActor ! SessionRequest(header, session, ObjectInfoRequest(code, position.toInt))
+          val JsNumber(detailLevel) = (content \ "detail_level").get
+          webSocketService.socketActor() ! SessionRequest(header, session, ObjectInfoRequest(code, position.toInt))
         case x => log.warning("Unrecognized websocket message: " + json)
       }
   }
