@@ -150,7 +150,7 @@ class ReplCalculator(
           execute(ref, er)
         }
 
-      case er@ExecuteRequest(_, _, code) =>
+      case er @ ExecuteRequest(_, _, code) =>
         log.debug("Enqueuing execute request at: " + queue.size)
         queue = queue.enqueue((sender(), er))
 

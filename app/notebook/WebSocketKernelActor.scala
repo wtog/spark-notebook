@@ -66,26 +66,26 @@ class WebSocketKernelActor(
               "extension" → "scala"
             )
           )
-          webSocketService.socketActor() ! WebUIReadyNotification(ws)
+          webSocketService.socketActor ! WebUIReadyNotification(ws)
         case JsString("interrupt_cell_request") =>
           val JsString(cellId) = (content \ "cell_id").get
-          webSocketService.socketActor() ! InterruptCell(cellId)
+          webSocketService.socketActor ! InterruptCell(cellId)
         case JsString("interrupt_request") =>
-          webSocketService.socketActor() ! InterruptCalculator
+          webSocketService.socketActor ! InterruptCalculator
         case JsString("execute_request") =>
           val JsString(cellId) = (content \ "cell_id").get
           val JsString(code) = (content \ "code").get
           val execCounter = executionCounter.incrementAndGet()
-          webSocketService.socketActor() ! SessionRequest(header, session, ExecuteRequest(cellId, execCounter, code))
+          webSocketService.socketActor ! SessionRequest(header, session, ExecuteRequest(cellId, execCounter, code))
         case JsString("complete_request") =>
           val JsString(line) = (content \ "code").get
           val JsNumber(cursorPos) = (content \ "cursor_pos").get
-          webSocketService.socketActor() ! SessionRequest(header, session, CompletionRequest(line, cursorPos.toInt))
+          webSocketService.socketActor ! SessionRequest(header, session, CompletionRequest(line, cursorPos.toInt))
         case JsString("inspect_request") =>
           val JsString(code) = (content \ "code").get
           val JsNumber(position) = (content \ "cursor_pos").get
           val JsNumber(detailLevel) = (content \ "detail_level").get
-          webSocketService.socketActor() ! SessionRequest(header, session, ObjectInfoRequest(code, position.toInt))
+          webSocketService.socketActor ! SessionRequest(header, session, ObjectInfoRequest(code, position.toInt))
         case x => log.warning("Unrecognized websocket message: " + json)
       }
   }

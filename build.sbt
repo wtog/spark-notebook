@@ -78,7 +78,7 @@ ivyScala := ivyScala.value map {
 parallelExecution in Test in ThisBuild := false
 
 // these java options are for the forked test JVMs
-javaOptions in ThisBuild ++= Seq("-Xmx512M", "-XX:MaxPermSize=128M")
+javaOptions in ThisBuild ++= Seq("-Xmx512M")
 
 val viewerMode = Option(sys.env.getOrElse("VIEWER_MODE", "false")).get.toBoolean
 
@@ -159,9 +159,6 @@ resolvers in ThisBuild ++= Seq(
   case (None, false, _) => Nil
 })
 
-// FIXME: see https://www.playframework.com/documentation/2.5.x/IDE#Eclipse
-// EclipseKeys.skipParents in ThisBuild := false
-
 compileOrder := CompileOrder.Mixed
 
 publishMavenStyle := false
@@ -173,8 +170,6 @@ javacOptions ++= Seq("-Xlint:deprecation", "-g")
 scalacOptions ++= Seq("-deprecation", "-feature")
 
 scalacOptions ++= Seq("-Xmax-classfile-name", "100")
-
-//scriptClasspath := Seq("*")
 
 scriptClasspath in batScriptReplacements := Seq("*")
 
@@ -207,8 +202,6 @@ libraryDependencies ++= pac4jSecurity
 
 libraryDependencies += scalaTest
 
-// P.S. Using static controllers with the static routes generator is not deprecated,
-// but it is recommended that you migrate to using classes with dependency injection.
 routesGenerator := StaticRoutesGenerator
 
 libraryDependencies ++= List(
@@ -217,12 +210,8 @@ libraryDependencies ++= List(
   akkaSlf4j,
   cache,
   commonsIO,
-  // ↓ to fix java.lang.IllegalStateException: impossible to get artifacts when data has
-  //   not been loaded. IvyNode = org.apache.commons#commons-exec;1.1
-  //   encountered when using hadoop "2.0.0-cdh4.2.0"
   commonsExec,
   commonsCodec,
-  //scala stuffs
   "org.scala-lang" % "scala-library" % defaultScalaVersion,
   "org.scala-lang" % "scala-reflect" % defaultScalaVersion,
   "org.scala-lang" % "scala-compiler" % defaultScalaVersion
@@ -232,7 +221,7 @@ libraryDependencies ++= List(
 libraryDependencies ++= {
   scalaBinaryVersion.value match {
     case "2.10" => Nil
-    case "2.11" => List( //ningAsyncHttpClient, maybe not needed anymore after migration to faster deps downloading
+    case "2.11" => List( 
       "org.scala-lang.modules" %% "scala-xml" % "1.0.4",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
     )

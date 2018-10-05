@@ -33,7 +33,7 @@
       "id" : "051E00657F2041DD8A874D89566D9D2C"
     },
     "cell_type" : "code",
-    "source" : [ "import io.github.wtog.processor.{ Page, PageProcessor, RequestHeaders }\n", "\n", "final case class BaiduPageProcessor() extends PageProcessor {\n", "\n", "  override def process(page: Page): Unit = {\n", "    val document = page.jsoupParser\n", "    page.addPageResultItem(Map(\"title\" -> document.title()))\n", "    page.addTargetRequest(\"http://www.baidu.com\")\n", "  }\n", "\n", "  override def requestHeaders: RequestHeaders = {\n", "    RequestHeaders(\n", "      domain = \"www.baidu.com\",\n", "      headers = Some(Map(\"Content-Type\" -> \"text/html; charset=GB2312\")), useProxy = true)\n", "  }\n", "\n", "  override def targetUrls: List[String] = {\n", "    List(\"http://www.baidu.com\")\n", "  }\n", "}\n" ],
+    "source" : [ "import io.github.wtog.processor.{ Page, PageProcessor, RequestHeaders }\n", "import io.github.wtog.spider.Spider\n", "\n", "final case class BaiduPageProcessor() extends PageProcessor {\n", "\n", "  override def process(page: Page): Unit = {\n", "    val document = page.jsoupParser\n", "    page.addPageResultItem(Map(\"title\" -> document.title()))\n", "    page.addTargetRequest(\"http://www.baidu.com\")\n", "  }\n", "\n", "  override def requestHeaders: RequestHeaders = {\n", "    RequestHeaders(\n", "      domain = \"www.baidu.com\",\n", "      headers = Some(Map(\"Content-Type\" -> \"text/html; charset=GB2312\")), useProxy = true)\n", "  }\n", "\n", "  override def targetUrls: List[String] = {\n", "    List(\"http://www.baidu.com\")\n", "  }\n", "}\n", "\n", "Spider(pageProcessor = BaiduPageProcessor()).start()\n" ],
     "outputs" : [ ]
   }, {
     "metadata" : {

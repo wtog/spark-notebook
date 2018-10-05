@@ -14,5 +14,5 @@ trait WebSocketService {
 
   def unregister(ws: WebSockWrapper)
 
-  def socketActor(): ActorRef
+  val socketActor: ActorRef
 }

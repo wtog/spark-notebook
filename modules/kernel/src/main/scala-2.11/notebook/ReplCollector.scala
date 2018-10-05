@@ -130,16 +130,15 @@ class ReplCollector(
           println(code)
           val cellResult = try {
            repl.evaluate(s"""
-              |globalScope.sparkContext.setJobGroup("${JobTracking.jobGroupId(cellId)}", "${JobTracking.jobDescription(code, start)}")
               |$code
               """.stripMargin,
               msg => thisSender ! StreamResponse(msg, "stdout"),
               nameDefinition => thisSender ! nameDefinition
             )
           }
-          finally {
-             repl.evaluate("globalScope.sparkContext.clearJobGroup()")
-          }
+//          finally {
+//             repl.evaluate("globalScope.sparkContext.clearJobGroup()")
+//          }
           cellResult
         }
         val result = replEvaluate(generatedReplCode.replCommand, cellId)

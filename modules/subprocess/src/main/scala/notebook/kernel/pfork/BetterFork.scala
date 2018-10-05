@@ -41,7 +41,6 @@ class BetterFork[A <: ForkableProcess : reflect.ClassTag](config: Config, execut
 
   val processClass = (implicitly[reflect.ClassTag[A]]).runtimeClass
 
-
   def workingDirectory = new File(if (config.hasPath("wd")) config.getString("wd") else ".")
 
   def heap: Long = if (config.hasPath("heap")) config.getBytes("heap") else defaultHeap
@@ -127,7 +126,6 @@ class BetterFork[A <: ForkableProcess : reflect.ClassTag](config: Config, execut
       val completion = Promise[Int]()
       exec.setWorkingDirectory(workingDirectory)
       exec.execute(cmd, environment, new ExecuteResultHandler {
-        Logger.info(s"Spawning $cmd")
         Logger.trace(s"With Env $environment")
         Logger.info(s"In working directory $workingDirectory")
 
@@ -163,11 +161,8 @@ class ProcessInfo(killer: () => Unit, val initReturn: String, val completion: Fu
 
 object BetterFork {
 
-  // Keeps server sockets around so they are not GC'd
   private val serverSockets = new ListBuffer[Socket]()
 
-
-  //  →→→→→→→→→→→→→    NEEDED WHEN running in SBT/Play ...
   def defaultClassPath: IndexedSeq[String] = {
     def urls(cl: ClassLoader, acc: IndexedSeq[String] = IndexedSeq.empty): IndexedSeq[String] = {
       if (cl != null) {
@@ -271,7 +266,6 @@ object BetterFork {
 
     log.info("Remote process starting")
     val socket = new Socket("127.0.0.1", parentPort)
-
 
     val hostedClass = Class.forName(className).newInstance().asInstanceOf[ForkableProcess]
 

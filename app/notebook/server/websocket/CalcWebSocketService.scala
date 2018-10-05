@@ -35,11 +35,11 @@ class CalcWebSocketService(
 
   implicit val executor = system.dispatcher
 
-  override def socketActor(): ActorRef = system.actorOf(Props(new CalcActor))
+  override val socketActor: ActorRef = system.actorOf(Props(new CalcActor))
 
-  def register(ws: WebSockWrapper) = socketActor() ! Register(ws)
+  def register(ws: WebSockWrapper) = socketActor ! Register(ws)
 
-  def unregister(ws: WebSockWrapper) = socketActor() ! Unregister(ws)
+  def unregister(ws: WebSockWrapper) = socketActor ! Unregister(ws)
 
   class CalcActor extends Actor with ActorLogging {
     private var currentSessionOperations: Queue[SessionOperation] = Queue.empty
@@ -54,7 +54,7 @@ class CalcWebSocketService(
     private val lastTermDefinitions = mutable.Map[String, (NameDefinition, String)]()
 
     val ws = new {
-      def send(header: JsValue, session: JsValue /*ignored*/ , msgType: String, channel: String,
+      def send(header: JsValue, session: JsValue, msgType: String, channel: String,
         content: JsValue) = {
         Logger.trace(s"Sending info to websockets $wss in $this")
         wss.foreach { ws =>
@@ -187,7 +187,7 @@ class CalcWebSocketService(
       case WebUIReadyNotification(newlyStartedWs) =>
         sendAllEarlierNameDefinitions(newlyStartedWs)
 
-      case req@SessionRequest(header, session, request) =>
+      case req @ SessionRequest(header, session, request) =>
         val operations = new SessionOperationActors(header, session)
         val (operationActor, cellId) = (request: @unchecked) match {
           case ExecuteRequest(cellId, counter, code) =>

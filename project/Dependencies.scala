@@ -65,7 +65,7 @@ object Dependencies {
   val defaultHadoopVersion = sys.props.getOrElse("hadoop.version", "2.7.3")
 
   val akkaGroup = if (defaultHadoopVersion.startsWith("1")) "org.spark-project.akka" else "com.typesafe.akka"
-  val akkaVersion = if (defaultHadoopVersion.startsWith("1")) "2.3.4-spark" else "2.4.18"
+  val akkaVersion = if (defaultHadoopVersion.startsWith("1")) "2.3.4-spark" else "2.5.12"
   val akka = akkaGroup %% "akka-actor" % akkaVersion
   val akkaRemote = akkaGroup %% "akka-remote" % akkaVersion
   val akkaSlf4j = akkaGroup %% "akka-slf4j" % akkaVersion
@@ -181,19 +181,15 @@ object Dependencies {
   val commonsExec = "org.apache.commons" % "commons-exec" % "1.3" force()
   val commonsCodec = "commons-codec" % "commons-codec" % "1.10" force()
 
-  // P.S. Play 2.4 uses guava 18.0; play 2.5 uses 19.0. seems OK for force it.
   val defaultGuavaVersion = sys.props.getOrElse("guava.version", "14.0") // 16.0.1 for cassandra connector 1.6-M1
   val guava = "com.google.guava" % "guava" % defaultGuavaVersion force()
-  val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.7"
+  val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.25"
   val log4j = "log4j" % "log4j" % "1.2.17"
 
-  // for aether only
-  // must exclude as netty moved from org.jboss.netty to io.netty
-  val ningAsyncHttpClient = "com.ning" % "async-http-client" % "[1.6.5, 1.6.5]" force() exclude("org.jboss.netty", "netty") //"1.8.10"//"[1.6.5, 1.6.5]" force()
+  val ningAsyncHttpClient = "com.ning" % "async-http-client" % "[1.6.5, 1.6.5]" force() exclude("org.jboss.netty", "netty")
 
   // Viz
   val geometryDeps = Seq(
-    // it uses jackson 2.8.1
     "org.wololo" % "jts2geojson" % "0.8.0" excludeAll(jacksonExclusions: _*)
   ) ++ customJacksonScala
 

@@ -31,11 +31,11 @@ class CollWebSocketService(
 
   implicit val executor = system.dispatcher
 
-  override def socketActor(): ActorRef = system.actorOf(Props(new CollActor))
+  override val socketActor: ActorRef = system.actorOf(Props(new CollActor))
 
-  def register(ws: WebSockWrapper) = socketActor() ! Register(ws)
+  def register(ws: WebSockWrapper) = socketActor ! Register(ws)
 
-  def unregister(ws: WebSockWrapper) = socketActor() ! Unregister(ws)
+  def unregister(ws: WebSockWrapper) = socketActor ! Unregister(ws)
 
   class CollActor extends Actor with ActorLogging {
     private var currentSessionOperations: Queue[SessionOperation] = Queue.empty
@@ -191,26 +191,26 @@ class CollWebSocketService(
         currentSessionOperations = currentSessionOperations.enqueue(SessionOperation(operation, cellId))
         collector.tell(request, operation)
 
-      case Terminated(actor) =>
-        Logger.debug("Termination of op calculator")
-        if (actor == collector) {
-          Logger.error(s"Remote calculator ($collector) has been terminated !!!!!")
-          kernel.shutdown()
-
-          ws.send(
-            obj(
-              "session" → "ignored"
-            ),
-            JsNull,
-            "status",
-            "iopub",
-            obj("execution_state" → "dead")
-          )
-          self ! PoisonPill
-        } else {
-          Logger.debug(s"Termination of op calculator: ${currentSessionOperations.filter(_.actor == actor)}")
-          currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
-        }
+//      case Terminated(actor) =>
+//        Logger.debug("Termination of op calculator")
+//        if (actor == collector) {
+//          Logger.error(s"Remote calculator ($collector) has been terminated !!!!!")
+//          kernel.shutdown()
+//
+//          ws.send(
+//            obj(
+//              "session" → "ignored"
+//            ),
+//            JsNull,
+//            "status",
+//            "iopub",
+//            obj("execution_state" → "dead")
+//          )
+//          self ! PoisonPill
+//        } else {
+//          Logger.debug(s"Termination of op calculator: ${currentSessionOperations.filter(_.actor == actor)}")
+//          currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
+//        }
 
       case event:org.apache.log4j.spi.LoggingEvent =>
 //         println("Received log event: " + s"""

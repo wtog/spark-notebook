@@ -10,7 +10,8 @@ import notebook.kernel.pfork.{BetterFork, ForkableProcess, ProcessInfo}
 import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 /**
  * Author: Ken
@@ -25,7 +26,7 @@ class RemoteActorProcess extends ForkableProcess {
 
     // Cookie file is optional second argument
     val actualCfg = args.take(2) match {
-      case Seq(_, cookieFile) if cookieFile.size > 0 =>
+      case Seq(_, cookieFile) if cookieFile.nonEmpty =>
         val cookie = FileUtils.readFileToString(new File(cookieFile))
         AkkaConfigUtils.requireCookie(cfg, cookie)
       case _ => cfg
@@ -46,7 +47,7 @@ class RemoteActorProcess extends ForkableProcess {
   }
 
   def waitForExit() {
-    _system.awaitTermination()
+    Await.result(_system.whenTerminated, Duration.Inf)
     println("waitForExit complete")
   }
 }
@@ -64,9 +65,6 @@ case object RemoteShutdown
 
 class ShutdownActor extends Actor {
   override def postStop() {
-    // KV: I tried to do a context.system.shutdown() here, but the system would often hang when multiple actors were in play.
-    //  I think it was this issue: https://groups.google.com/forum/#!msg/akka-user/VmKMPI_tNQU/ZUSz25OBpIwJ
-    // So we take the hard way out. Would be nice to have graceful shutdown
     sys.exit(0)
   }
 
@@ -109,8 +107,10 @@ object RemoteActorSystem {
             impersonatedUser: Option[String],
             authUser:Option[String],
             isVersioningSupported:Boolean): Future[RemoteActorSystem] = {
+
     val cookiePath = ""
     val user = authUser.orElse(sys.env.get("USER")).getOrElse("unknown")
+
     new BetterFork[RemoteActorProcess](config, system.dispatcher, customArgs)
       .execute(kernelId, notebookPath.getOrElse("no-path"), impersonatedUser.getOrElse("NONE"), configFile, cookiePath, user, isVersioningSupported.toString)
       .map {

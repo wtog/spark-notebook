@@ -86,12 +86,9 @@ object Application extends Controller {
   val base_observable_url = "observable"
   val read_only = viewer
 
-  //  TODO: Ugh...
   val terminals_available = false.toString // TODO
 
   def loginForm = Action { implicit request =>
-    // FIXME: pac4j config should be injected (need to refactor controllers to use DI)
-    // val callbackUrl = config.findClient("FormClient").asInstanceOf[FormClient].getCallbackUrl
     val callbackUrl = "/callback?client_name=FormClient"
     Ok(views.html.loginForm.render(callbackUrl))
   }
