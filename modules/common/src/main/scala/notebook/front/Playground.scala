@@ -30,9 +30,9 @@ trait JsWorld[I, O] extends Widget with IODataConnector[I, O] {
 
         playground.call(data,
                         this
-                        ${if (scripts.size > 0) "," else ""}
+                        ${if (scripts.nonEmpty) "," else ""}
                         ${scripts.map(s => s.toJson).mkString(", ")}
-                        ${if (snippets.size > 0) "," else ""}
+                        ${if (snippets.nonEmpty) "," else ""}
                         ${snippets.mkString(", ")}
                       );
       }

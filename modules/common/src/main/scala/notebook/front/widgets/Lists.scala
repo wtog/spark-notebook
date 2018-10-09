@@ -39,9 +39,14 @@ trait Lists extends Generic with Utils {
                           )
 
 
-    lazy val toHtml = unordered match {
-      case true => <ul data-bind="foreach: value"><li data-bind="html: $data"></li>{reactivity}</ul>
-      case false => <ol data-bind="foreach: value"><li data-bind="html: $data"></li>{reactivity}</ol>
+    lazy val toHtml = if (unordered) {
+      <ul data-bind="foreach: value">
+        <li data-bind="html: $data"></li>{reactivity}
+      </ul>
+    } else {
+      <ol data-bind="foreach: value">
+        <li data-bind="html: $data"></li>{reactivity}
+      </ol>
     }
 
 

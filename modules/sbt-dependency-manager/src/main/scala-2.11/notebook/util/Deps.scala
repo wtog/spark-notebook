@@ -1,24 +1,18 @@
 package com.datafellas.utils
 
-import java.io.{ IOException, File }
-import java.net.URL
-import java.util.Arrays
+import java.io.{File, IOException}
+
+import com.jcabi.aether.Aether
+import com.typesafe.config.ConfigFactory
+import org.sonatype.aether.artifact.Artifact
+import org.sonatype.aether.graph._
+import org.sonatype.aether.repository.{Authentication, RemoteRepository, Proxy => AetherProxy}
+import org.sonatype.aether.util.artifact.DefaultArtifact
+import org.xml.sax.SAXParseException
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
-import scala.xml.{ Text, NodeSeq, Elem, XML }
-
-import com.typesafe.config.{ConfigFactory, Config}
-
-import org.apache.maven.project.MavenProject
-import org.xml.sax.SAXParseException
-import org.sonatype.aether.repository.{RemoteRepository, Proxy => AetherProxy}
-import org.sonatype.aether.repository.Authentication
-import org.sonatype.aether.artifact.Artifact
-import org.sonatype.aether.util.artifact.DefaultArtifact
-import org.sonatype.aether.graph._
-import org.sonatype.aether.util.filter.ExclusionsDependencyFilter
-import com.jcabi.aether.Aether
+import scala.xml.XML
 
 
 object Repos extends java.io.Serializable {

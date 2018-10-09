@@ -127,7 +127,6 @@ class ReplCollector(
       val result = scala.concurrent.Future {
         val cellId = er.cellId
         def replEvaluate(code:String, cellId:String) = {
-          println(code)
           val cellResult = try {
            repl.evaluate(s"""
               |$code
