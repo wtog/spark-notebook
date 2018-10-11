@@ -185,6 +185,11 @@ object Dependencies {
   val guava = "com.google.guava" % "guava" % defaultGuavaVersion force()
   val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.25"
   val log4j = "log4j" % "log4j" % "1.2.17"
+  val log4j2Version = "2.10.0"
+  val log4j2 = Seq(
+    "org.apache.logging.log4j" % "log4j-slf4j-impl" % log4j2Version,
+    "org.apache.logging.log4j" % "log4j-api" % log4j2Version,
+    "org.apache.logging.log4j" % "log4j-core" % log4j2Version)
 
   val ningAsyncHttpClient = "com.ning" % "async-http-client" % "[1.6.5, 1.6.5]" force() exclude("org.jboss.netty", "netty")
 

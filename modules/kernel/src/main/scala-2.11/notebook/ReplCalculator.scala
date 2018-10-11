@@ -203,6 +203,7 @@ class ReplCalculator(
 
     def execute(sender: ActorRef, er: ExecuteRequest): Unit = {
       val generatedReplCode: ReplCommand = commandInterpreters(er)
+      println(s"spark generatedReplCode: ${generatedReplCode}")
       val start = System.currentTimeMillis
       val thisSelf = self
       val thisSender = sender

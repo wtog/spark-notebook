@@ -15,15 +15,16 @@ class ReplTest extends FlatSpec {
 
     val result = repl.evaluate(
       """
-        |import io.github.wtog.processor.{ Page, PageProcessor, RequestHeaders }
-        |import io.github.wtog.spider.Spider
-        |import io.github.wtog.spider.SpiderPool
+        |import io.github.wtog.processor.{Page, PageProcessor, RequestHeaders}
+        |import io.github.wtog.spider.{Spider, SpiderPool}
         |
         |final case class BaiduPageProcessor() extends PageProcessor {
         |
         |  override def process(page: Page): Unit = {
         |    val document = page.jsoupParser
+        |
         |    page.addPageResultItem(Map("title" -> document.title()))
+        |
         |    page.addTargetRequest("http://www.baidu.com")
         |  }
         |
@@ -37,8 +38,9 @@ class ReplTest extends FlatSpec {
         |    List("http://www.baidu.com")
         |  }
         |}
-        |//Spider(pageProcessor = BaiduPageProcessor()).start()
-        |//SpiderPool
+        |
+        |Spider(pageProcessor = BaiduPageProcessor()).start()
+        |SpiderPool.fetchAllSpiders()
       """.stripMargin)
 
     println(result)

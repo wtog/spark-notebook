@@ -288,7 +288,6 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
                         val err = s"Error when rendering cell result: NoSuchMethodException: " +
                           s"in ${o.getName} which has such methods: " +
                           s"${o.getDeclaredMethods.toSeq.map(_.toString).sorted}"
-                        println(err)
                         LOG.error(err, e)
                         throw e
                       }

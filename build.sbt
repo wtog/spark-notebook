@@ -189,7 +189,7 @@ bashScriptDefines := bashScriptDefines.value.map {
   case entry => entry
 }
 
-dependencyOverrides += log4j
+dependencyOverrides ++= log4j2.toSet
 
 dependencyOverrides += guava
 
@@ -348,9 +348,9 @@ lazy val subprocess = Project(id="subprocess", base=file("modules/subprocess"))
         akkaSlf4j,
         commonsIO,
         commonsExec,
-        log4j,
+
         hadoopClient(defaultHadoopVersion)
-      )
+      ) ++ log4j2
     }
   )
   .settings(sharedSettings: _*)
@@ -392,9 +392,9 @@ lazy val common = Project(id = "common", base = file("modules/common"))
   )
   .settings(
     libraryDependencies ++= Seq(
-      akka,
-      log4j
-    ),
+      akka
+
+    ) ++ log4j2,
     libraryDependencies += scalaTest,
     unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / ("scala-" + scalaBinaryVersion.value),
     unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / commonProjSparkDir
@@ -476,6 +476,10 @@ lazy val collector = Project(id = "collector", base = file("modules/collector"))
   .dependsOn(common, subprocess, observable)
   .settings(libraryDependencies ++= collectorDeps)
   .settings(sharedSettings: _*)
-  .settings(
+  .settings(                      
     Extra.kernelSettings
   )
+
+javaOptions += "-Dsbt.jse.engineType=Node"
+javaOptions += " -Dsbt.jse.command=$(which node)"
+excludeDependencies += "org.slf4j" % "slf4j-log4j12"

@@ -5,7 +5,6 @@ import notebook.front.Widget
 import play.api.libs.json._
 
 class DropDown[A](options: Seq[A], toString: A => String = (a: A) => a.toString) extends Widget {
-
   // Just implement the second function here to support option changing in JavaScript
   private lazy val _optionsConnection = JSBus.createConnection
   lazy val optionsConnection = _optionsConnection.biMap[Seq[A]](

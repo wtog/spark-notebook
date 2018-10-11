@@ -84,8 +84,7 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
     }
 
     val classpath = urls.toList
-
-    //bootclasspath → settings.classpath.isDefault = false → settings.classpath is used
+    settings.processArguments(List("-Yrepl-class-based", "-Yrepl-sync"), processAll = true)
     settings.bootclasspath.value += scala.tools.util.PathResolver.Environment.javaBootClassPath
     settings.bootclasspath.value += java.io.File.pathSeparator + settings.classpath.value
 
@@ -218,7 +217,11 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
                 val renderedClass2 = Class.forName(line.pathTo("$rendered") + "$", true, interp.classLoader)
                 Thread.currentThread().setContextClassLoader(cp)
 
-                def getModule(c: Class[_]) = c.getDeclaredField(interp.global.nme.MODULE_INSTANCE_FIELD.toString).get(())
+                def getModule(c: Class[_]) = {
+                  val field = c.getDeclaredField(interp.global.nme.MODULE_INSTANCE_FIELD.toString)
+                  field.setAccessible(true)
+                  field.get(())
+                }
 
                 val module = getModule(renderedClass2)
 
@@ -250,7 +253,6 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
                       } catch {
                         case e: NoSuchMethodException =>
                           val err = s"Error when rendering cell result: NoSuchMethodException: in ${o.getName} which has such methods: ${o.getDeclaredMethods.toSeq.map(_.toString).sorted}"
-                          println(err)
                           LOG.error(err, e)
                           throw e
                       }
