@@ -30,9 +30,5 @@ dependencies:
 
 test:
   override:
-    # nasty way to run test in parallel with different config
-    # FIXME: matrix-builds still not available even in CircleCI 2.0 Beta (yet). but improvement is planned
-    # https://circleci.com/docs/1.0/parallel-manual-setup/
-  override:
     - case $CIRCLE_NODE_INDEX in 0) sbt $BUILD_SPARK_2_0 clean test ;; 1) sbt $BUILD_SPARK_2_1 clean test ;; esac:
         parallel: true

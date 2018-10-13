@@ -1,12 +1,6 @@
 import sbtbuildinfo.Plugin._
 
-// Taken from root ./build.sbt
-// scalaVersion := "2.10.5"
-// version := "0.4.1-SNAPSHOT"
-// organization := "io.kensu"
-// name := "sbt-dependency-manager"
-
-crossScalaVersions := Seq("2.10.5", "2.11.6")
+crossScalaVersions := Seq("2.10.5", "2.11.8")
 
 publishArtifact in Test := false
 
@@ -25,7 +19,7 @@ def depsToDownloadDeps(scalaBinaryVersion: String, sbtVersion: String) = scalaBi
   case _ =>
     val aetherApi = "org.sonatype.aether" % "aether-api" % "1.13"
     val jcabiAether = "com.jcabi" % "jcabi-aether" % "0.10.1" exclude("org.jboss.netty", "netty")
-    val mavenCore = "org.apache.maven" % "maven-core" % "3.0.5"
+    val mavenCore = "org.apache.maven" % "maven-core" % "3.5.4"
     List(aetherApi, jcabiAether, mavenCore)
 }
 
@@ -41,18 +35,18 @@ libraryDependencies ++= {
 }
 
 libraryDependencies ++= Seq(
-  "io.get-coursier" %% "coursier" % "1.0.0-RC4",
-  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC4"
+  "io.get-coursier" %% "coursier" % "1.0.3",
+  "io.get-coursier" %% "coursier-cache" % "1.0.3"
 )
 
 libraryDependencies ++= depsToDownloadDeps(scalaBinaryVersion.value, sbtVersion.value)
 
-libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.12"
+libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25"
 
-libraryDependencies += "com.typesafe" % "config" % "1.2.1"
+libraryDependencies += "com.typesafe" % "config" % "1.3.2"
 
 libraryDependencies ++= {
-  if(scalaBinaryVersion.value == "2.11") Seq("org.scala-lang.modules" %% "scala-xml" % "1.0.4") else Seq.empty
+  if(scalaBinaryVersion.value == "2.11") Seq("org.scala-lang.modules" %% "scala-xml" % "1.0.5") else Seq.empty
 }
 
 unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / ("scala-" + scalaBinaryVersion.value)

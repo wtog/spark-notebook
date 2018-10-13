@@ -88,13 +88,8 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
     settings.bootclasspath.value += scala.tools.util.PathResolver.Environment.javaBootClassPath
     settings.bootclasspath.value += java.io.File.pathSeparator + settings.classpath.value
 
-    // LOG the classpath
-    // debug the classpath → settings.Ylogcp.value = true
-
     val fps = jars.map { jar =>
-
       val f = scala.tools.nsc.io.File(jar).normalize
-      //loop.addedClasspath = ClassPath.join(loop.addedClasspath, f.path)
       f.path
     }
     settings.classpath.value = (classpath.distinct ::: fps).mkString(java.io.File.pathSeparator)
@@ -272,8 +267,6 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
                     </pre>
               }
             } else {
-              // a line like println(...) is technically a val, but returns null for some reason
-              // so wrap it in an option in case that happens...
               Option(line.call("$result")).map { result =>
                 Text(
                   try {

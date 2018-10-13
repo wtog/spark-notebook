@@ -1,5 +1,6 @@
 import Dependencies._
 import Shared._
+import sbt.Keys.libraryDependencies
 import sbtbuildinfo.Plugin._
 
 organization := MainProperties.organization
@@ -195,12 +196,13 @@ dependencyOverrides += guava
 
 sharedSettings
 
-libraryDependencies ++= playDeps
+//libraryDependencies ++= playDeps
 
 resolvers ++= Seq("Sonatype snapshots repository" at "https://oss.sonatype.org/content/repositories/snapshots/")
 libraryDependencies ++= pac4jSecurity
 
 libraryDependencies += scalaTest
+libraryDependencies += "com.google.inject" % "guice" % "4.0"
 
 routesGenerator := StaticRoutesGenerator
 
@@ -243,7 +245,7 @@ lazy val sparkNotebookCore = Project(id = "spark-notebook-core", base = file("mo
   .settings(
     version := version.value,
     libraryDependencies ++= playJson,
-    libraryDependencies += slf4jLog4j,
+    libraryDependencies ++= log4j2,
     libraryDependencies += commonsIO,
     libraryDependencies += scalaTest
   ).settings(sharedSettings: _*)
@@ -300,7 +302,6 @@ val playRemoveNetty = {
   result
 }
 
-
 // in spark 2.3.0 dont use PlayNetty to prevent a Netty conflict
 def rootProject = {
   val root = project.in(file("."))
@@ -309,7 +310,7 @@ def rootProject = {
   else root.enablePlugins(PlayScala)
 }
 
-lazy val sparkNotebook = rootProject.enablePlugins(SbtWeb)
+lazy val sparkNotebook = rootProject
   // https://www.playframework.com/documentation/2.5.x/SettingsLogger#Using-a-Custom-Logging-Framework
   .disablePlugins(PlayLogback)
   .aggregate(sparkNotebookCore, gitNotebookProvider, sbtDependencyManager, sbtProjectGenerator, subprocess, observable, common, spark, kernel, collector)
@@ -317,7 +318,6 @@ lazy val sparkNotebook = rootProject.enablePlugins(SbtWeb)
   .settings(sharedSettings: _*)
   .settings(
     bashScriptExtraDefines += s"""export ADD_JARS="$${ADD_JARS},$${lib_dir}/$$(ls $${lib_dir} | grep ${organization.value}.common | head)"""",
-    // configure the "universal" distribution package (i.e. spark-notebook.zip)
     mappings in Universal ++= directory("notebooks"),
     version in Universal := fullVersion.value,
     version in Docker := fullVersion.value,
@@ -366,9 +366,8 @@ lazy val observable = Project(id = "observable", base = file("modules/observable
     libraryDependencies ++= Seq(
       akkaRemote,
       akkaSlf4j,
-      slf4jLog4j,
       rxScala
-    )
+    ) ++ log4j2
   )
   .settings(sharedSettings: _*)
   .settings(
@@ -423,9 +422,9 @@ lazy val spark = Project(id = "spark", base = file("modules/spark"))
     libraryDependencies ++= Seq(
       akkaRemote,
       akkaSlf4j,
-      slf4jLog4j,
+
       commonsIO
-    ),
+    ) ++ log4j2, 
     libraryDependencies ++= Seq(
       jlineDef.value._1 % "jline" % jlineDef.value._2,
       "org.scala-lang" % "scala-compiler" % scalaVersion.value
@@ -461,9 +460,8 @@ lazy val kernel = Project(id = "kernel", base = file("modules/kernel"))
     libraryDependencies ++= Seq(
       akkaRemote,
       akkaSlf4j,
-      slf4jLog4j,
       commonsIO
-    ),
+    ) ++ log4j2,
     libraryDependencies += scalaTest,
     unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / ("scala-" + scalaBinaryVersion.value)
   )
@@ -482,4 +480,5 @@ lazy val collector = Project(id = "collector", base = file("modules/collector"))
 
 javaOptions += "-Dsbt.jse.engineType=Node"
 javaOptions += " -Dsbt.jse.command=$(which node)"
-excludeDependencies += "org.slf4j" % "slf4j-log4j12"
+excludeDependencies ++= Seq("org.slf4j" % "slf4j-log4j12", "org.sonatype.sisu" % "sisu-guava")
+dependencyOverrides ++= Set("com.google.guava" % "guava" % "16.0.1")

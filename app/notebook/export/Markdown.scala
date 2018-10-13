@@ -30,7 +30,7 @@ object Markdown {
               dir match {
                 case Some(d) =>
                   val fl = d.list()
-                  val i = if (Option(fl).filter(_.length > 0).isEmpty) 0 else fl.count(_.endsWith(".png"))
+                  val i = if (!Option(fl).exists(_.length > 0)) 0 else fl.count(_.endsWith(".png"))
                   val imageFile = new File(dir.get, s"image-$i.png")
                   val imageString = m.dropWhile(_ != ',').tail
 
@@ -38,11 +38,11 @@ object Markdown {
                   val imageByte = Base64.decodeBase64(imageString)
                   val bis = new java.io.ByteArrayInputStream(imageByte)
 
-                  val image = javax.imageio.ImageIO.read(bis);
+                  val image = javax.imageio.ImageIO.read(bis)
 
-                  bis.close();
+                  bis.close()
 
-                  javax.imageio.ImageIO.write(image, "png", imageFile);
+                  javax.imageio.ImageIO.write(image, "png", imageFile)
 
                   files += imageFile
 
@@ -110,12 +110,12 @@ object Markdown {
         mdFile.createNewFile
         val w = new java.io.FileWriter(mdFile)
         w.write(fc)
-        w.close
+        w.close()
 
         val zipFile = new File(dir.get, name+".zip")
         zipFile.createNewFile
-        val baos = new java.io.FileOutputStream(zipFile);
-        val zip = new java.util.zip.ZipOutputStream(baos);
+        val baos = new java.io.FileOutputStream(zipFile)
+        val zip = new java.util.zip.ZipOutputStream(baos)
 
         def write(files:List[File], prefix:String) = files.foreach { f =>
           zip.putNextEntry(new java.util.zip.ZipEntry(prefix+f.getName))

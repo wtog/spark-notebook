@@ -1,6 +1,6 @@
 package notebook.server.websocket
 
-import akka.actor.{Terminated, _}
+import akka.actor._
 import notebook.client._
 import notebook.repl.NameDefinition
 import notebook.server._
@@ -212,28 +212,28 @@ class CollWebSocketService(
 //          currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
 //        }
 
-      case event:org.apache.log4j.spi.LoggingEvent =>
-//         println("Received log event: " + s"""
-//           > ${event.getLevel}
-//           > ${event.getTimeStamp}
-//           > ${event.getLoggerName}
-//           > ${event.getMessage}
-//         """)
-        ws.send(
-          obj(
-            "session" → "ignored"
-          ),
-          JsNull,
-          "log",
-          "iopub",
-          obj(
-            "level"       → event.getLevel.toString,
-            "time_stamp"  → event.getTimeStamp,
-            "logger_name" → event.getLoggerName,
-            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
-            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
-          )
-        )
+//      case event:org.apache.log4j.spi.LoggingEvent =>
+////         println("Received log event: " + s"""
+////           > ${event.getLevel}
+////           > ${event.getTimeStamp}
+////           > ${event.getLoggerName}
+////           > ${event.getMessage}
+////         """)
+//        ws.send(
+//          obj(
+//            "session" → "ignored"
+//          ),
+//          JsNull,
+//          "log",
+//          "iopub",
+//          obj(
+//            "level"       → event.getLevel.toString,
+//            "time_stamp"  → event.getTimeStamp,
+//            "logger_name" → event.getLoggerName,
+//            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
+//            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
+//          )
+//        )
     }
 
     class SessionOperationActors(header: JsValue, session: JsValue) {

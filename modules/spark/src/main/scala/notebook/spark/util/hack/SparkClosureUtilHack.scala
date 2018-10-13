@@ -1,6 +1,5 @@
 package org.apache.spark.util.notebook.hack
 
-import scala.reflect.runtime.universe
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 

@@ -5,8 +5,7 @@ object Dependencies {
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
-  def excludeSpecs2(module: ModuleID): ModuleID =
-    module.excludeAll(ExclusionRule(organization = "org.specs2"))
+  def excludeSpecs2(module: ModuleID): ModuleID = module.excludeAll(ExclusionRule(organization = "org.specs2"))
 
   // must hard-force the jackson version in play-json to the one in spark
   // play v2.5 uses jackson "2.7.8" which conflicts with "2.6.5" used in spark
@@ -181,10 +180,10 @@ object Dependencies {
   val commonsExec = "org.apache.commons" % "commons-exec" % "1.3" force()
   val commonsCodec = "commons-codec" % "commons-codec" % "1.10" force()
 
-  val defaultGuavaVersion = sys.props.getOrElse("guava.version", "14.0") // 16.0.1 for cassandra connector 1.6-M1
+  val defaultGuavaVersion = sys.props.getOrElse("guava.version", "23.5-jre") // 16.0.1 for cassandra connector 1.6-M1
   val guava = "com.google.guava" % "guava" % defaultGuavaVersion force()
-  val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.25"
-  val log4j = "log4j" % "log4j" % "1.2.17"
+//  val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.25" force()
+//  val log4j = "log4j" % "log4j" % "1.2.17"
   val log4j2Version = "2.10.0"
   val log4j2 = Seq(
     "org.apache.logging.log4j" % "log4j-slf4j-impl" % log4j2Version,

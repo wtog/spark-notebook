@@ -1,10 +1,11 @@
 package notebook.server.websocket
 
 import akka.actor.{Terminated, _}
-import notebook.{Kernel, ReplCalculator}
 import notebook.client._
 import notebook.repl.NameDefinition
 import notebook.server._
+import notebook.{Kernel, ReplCalculator}
+import org.apache.logging.log4j.core.LogEvent
 import org.joda.time.LocalDateTime
 import play.api._
 import play.api.libs.json.Json.obj
@@ -229,14 +230,24 @@ class CalcWebSocketService(
           Logger.debug(s"Termination of op calculator: ${currentSessionOperations.filter(_.actor == actor)}")
           currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
         }
-
-      case event:org.apache.log4j.spi.LoggingEvent =>
-        // println("Received log event: " + s"""
-        //   > ${event.getLevel}
-        //   > ${event.getTimeStamp}
-        //   > ${event.getLoggerName}
-        //   > ${event.getMessage}
-        // """)
+//
+//      case event:org.apache.log4j.spi.LoggingEvent =>
+//        ws.send(
+//          obj(
+//            "session" → "ignored"
+//          ),
+//          JsNull,
+//          "log",
+//          "iopub",
+//          obj(
+//            "level"       → event.getLevel.toString,
+//            "time_stamp"  → event.getTimeStamp,
+//            "logger_name" → event.getLoggerName,
+//            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
+//            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
+//          )
+//        )
+      case event: LogEvent =>
         ws.send(
           obj(
             "session" → "ignored"
@@ -246,10 +257,10 @@ class CalcWebSocketService(
           "iopub",
           obj(
             "level"       → event.getLevel.toString,
-            "time_stamp"  → event.getTimeStamp,
+            "time_stamp"  → event.getTimeMillis,
             "logger_name" → event.getLoggerName,
             "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
-            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
+            "thrown"      → (if (event.getThrown == null) List.empty[String] else event.getThrown.getLocalizedMessage)
           )
         )
     }
