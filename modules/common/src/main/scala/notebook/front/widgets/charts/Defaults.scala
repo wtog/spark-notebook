@@ -11,7 +11,7 @@ import notebook.front.widgets.magic._
 import notebook.front.widgets.magic.Implicits._
 import notebook.front.widgets.magic.SamplerImplicits._
 
-case class Tabs[C:ToPoints:Sampler](originalData:C, pages:Seq[(String, Chart[C])]=Nil, maxPoints:Int = DEFAULT_MAX_POINTS)
+case class Tabs[C: ToPoints: Sampler](originalData: C, pages: Seq[(String, Chart[C])] = Nil, maxPoints: Int = DEFAULT_MAX_POINTS)
   extends JsWorld[Seq[(String, Any)], Seq[(String, Any)]]
   with Utils {
   import notebook.JSBus._
@@ -25,31 +25,30 @@ case class Tabs[C:ToPoints:Sampler](originalData:C, pages:Seq[(String, Chart[C])
   def newMax(max: Int) = pages foreach { case (_, w) => w.newMax(max) }
 
   override val scripts = List(
-    Script("magic/tabs", Json.obj())
-  )
+    Script("magic/tabs", Json.obj()))
 
-  override def apply(newData: Seq[Seq[(String,Any)]]) {
+  override def apply(newData: Seq[Seq[(String, Any)]]) {
     super.apply(newData)
-    pages.foreach { case (s, w) =>
-      w(newData)
+    pages.foreach {
+      case (s, w) =>
+        w(newData)
     }
   }
 
   override val content = Some {
     <div>
-      <div >
-        <ul class="nav nav-tabs" id={ "ul"+id }>{
+      <div>
+        <ul class="nav nav-tabs" id={ "ul" + id }>{
           pages.zipWithIndex map { p: ((String, Widget), Int) =>
             <li>
-              <a href={ "#tab"+id+"-"+p._2 }><i class={ "fa fa-"+p._1._1} /></a>
+              <a href={ "#tab" + id + "-" + p._2 }><i class={ "fa fa-" + p._1._1 }/></a>
             </li>
           }
         }</ul>
-
-        <div class="tab-content" id={ "tab"+id }>{
+        <div class="tab-content" id={ "tab" + id }>{
           pages.zipWithIndex map { p: ((String, Widget), Int) =>
-            <div class="tab-pane" id={ "tab"+id+"-"+p._2 }>
-            { p._1._2 }
+            <div class="tab-pane" id={ "tab" + id + "-" + p._2 }>
+              { p._1._2 }
             </div>
           }
         }</div>
@@ -58,113 +57,110 @@ case class Tabs[C:ToPoints:Sampler](originalData:C, pages:Seq[(String, Chart[C])
   }
 }
 
-case class ScatterChart[C:ToPoints:Sampler](
-    originalData:C,
-    fields:Option[(String, String)]=None,
-    override val sizes:(Int, Int)=(600, 400),
-    maxPoints:Int = DEFAULT_MAX_POINTS,
-    groupField: Option[String]=None
-  ) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
+case class ScatterChart[C: ToPoints: Sampler](
+  originalData: C,
+  fields: Option[(String, String)] = None,
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS,
+  groupField: Option[String] = None) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
 
-  val o = Json.obj( "x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2) ++
-            groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
+  val o = Json.obj("x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2) ++
+    groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
 
-  override val scripts = List(Script( "magic/scatterChart", o))
+  override val scripts = List(Script("magic/scatterChart", o))
 }
 
-case class LineChart[C:ToPoints:Sampler](
-    originalData:C,
-    fields:Option[(String, String)]=None,
-    override val sizes:(Int, Int)=(600, 400),
-    maxPoints:Int = DEFAULT_MAX_POINTS,
-    groupField: Option[String]=None
-  ) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
+case class LineChart[C: ToPoints: Sampler](
+  originalData: C,
+  fields: Option[(String, String)] = None,
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS,
+  groupField: Option[String] = None) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
 
-  val o = Json.obj( "x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2) ++
-            groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
+  val o = Json.obj("x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2) ++
+    groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
 
-  override val scripts = List(Script( "magic/lineChart", o))
+  override val scripts = List(Script("magic/lineChart", o))
 }
 
-case class RadarChart[C:ToPoints:Sampler](
-    originalData:C,
-    labelField:Option[String]=None,
-    override val sizes:(Int, Int)=(600, 400),
-    maxPoints:Int = DEFAULT_MAX_POINTS
-  ) extends Chart[C](originalData, maxPoints) {
+case class RadarChart[C: ToPoints: Sampler](
+  originalData: C,
+  labelField: Option[String] = None,
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS) extends Chart[C](originalData, maxPoints) {
 
-  val label  = labelField.getOrElse(headers(0))
+  val label = labelField.getOrElse(headers(0))
   val valuesCol = headers.filterNot(_ == label)
 
-  def mToSeq(t:MagicRenderPoint):Seq[(String, Any)] = t.data.toSeq
+  def mToSeq(t: MagicRenderPoint): Seq[(String, Any)] = t.data.toSeq
 
-  override val scripts = List(Script( "magic/radarChart",
-                                      Json.obj( "classCol" → label,
-                                                "axisCols" → valuesCol,
-                                                "width" → sizes._1, "height" → sizes._2)))
+  override val scripts = List(Script(
+    "magic/radarChart",
+    Json.obj(
+      "classCol" → label,
+      "axisCols" → valuesCol,
+      "width" → sizes._1, "height" → sizes._2)))
 }
 
-case class ParallelCoordChart[C:ToPoints:Sampler](
-    originalData:C,
-    override val sizes:(Int, Int)=(600, 400),
-    maxPoints:Int = DEFAULT_MAX_POINTS
-  ) extends Chart[C](originalData, maxPoints) {
+case class ParallelCoordChart[C: ToPoints: Sampler](
+  originalData: C,
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS) extends Chart[C](originalData, maxPoints) {
 
-  def mToSeq(t:MagicRenderPoint):Seq[(String, Any)] = t.data.toSeq
+  def mToSeq(t: MagicRenderPoint): Seq[(String, Any)] = t.data.toSeq
 
-  override val scripts = List(Script( "magic/pcChart",
-                                      Json.obj(
-                                        "headers" → headers,
-                                        "width" → sizes._1, "height" → sizes._2))
-                                      )
+  override val scripts = List(Script(
+    "magic/pcChart",
+    Json.obj(
+      "headers" → headers,
+      "width" → sizes._1, "height" → sizes._2)))
 }
 
-case class TimeseriesChart[C:ToPoints:Sampler](
-    originalData:C,
-    fields:Option[(String, String)]=None,
-    override val sizes:(Int, Int)=(600, 400),
-    maxPoints:Int = DEFAULT_MAX_POINTS,
-    groupField: Option[String]=None,
-    tickFormat:String = "%Y-%m-%d %H:%M:%S"
-  ) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
+case class TimeseriesChart[C: ToPoints: Sampler](
+  originalData: C,
+  fields: Option[(String, String)] = None,
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS,
+  groupField: Option[String] = None,
+  tickFormat: String = "%Y-%m-%d %H:%M:%S") extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
 
-  val o = Json.obj( "x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2, "tickFormat" → tickFormat) ++
-            groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
+  val o = Json.obj("x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2, "tickFormat" → tickFormat) ++
+    groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
 
-  override val scripts = List(Script( "magic/tsChart", o))
+  override val scripts = List(Script("magic/tsChart", o))
 }
 
-case class BarChart[C:ToPoints:Sampler](
-    originalData:C,
-    fields:Option[(String, String)]=None,
-    override val sizes:(Int, Int)=(600, 400),
-    maxPoints:Int = DEFAULT_MAX_POINTS,
-    groupField: Option[String]=None
-  ) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
+case class BarChart[C: ToPoints: Sampler](
+  originalData: C,
+  fields: Option[(String, String)] = None,
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS,
+  groupField: Option[String] = None) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
 
-  val o = Json.obj( "x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2) ++
-            groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
+  val o = Json.obj("x" → f1, "y" → f2, "width" → sizes._1, "height" → sizes._2) ++
+    groupField.map(g => Json.obj("g" → g)).getOrElse(Json.obj())
 
-  override val scripts = List(Script( "magic/barChart", o))
+  override val scripts = List(Script("magic/barChart", o))
 }
 
-case class PieChart[C:ToPoints:Sampler](originalData:C, fields:Option[(String, String)]=None, override val sizes:(Int, Int)=(600, 400), maxPoints:Int = DEFAULT_MAX_POINTS) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
+case class PieChart[C: ToPoints: Sampler](originalData: C, fields: Option[(String, String)] = None, override val sizes: (Int, Int) = (600, 400), maxPoints: Int = DEFAULT_MAX_POINTS) extends Chart[C](originalData, maxPoints) with Sequencifiable[C] {
   val groupField = None
-  override val scripts = List(Script( "magic/pieChart",
-                                      Json.obj("series" → f1, "p" → f2,
-                                                "width" → sizes._1, "height" → sizes._2)))
+  override val scripts = List(Script(
+    "magic/pieChart",
+    Json.obj("series" → f1, "p" → f2,
+      "width" → sizes._1, "height" → sizes._2)))
 }
 
-case class DiyChart[C:ToPoints:Sampler](
-  originalData:C,
-  js:String = "function(data, headers, chart) { console.log({'data': data, 'headers': headers, 'chart': chart}); }",
-  override val sizes:(Int, Int)=(600, 400),
-  maxPoints:Int = DEFAULT_MAX_POINTS
-) extends Chart[C](originalData, maxPoints) {
+case class DiyChart[C: ToPoints: Sampler](
+  originalData: C,
+  js: String = "function(data, headers, chart) { console.log({'data': data, 'headers': headers, 'chart': chart}); }",
+  override val sizes: (Int, Int) = (600, 400),
+  maxPoints: Int = DEFAULT_MAX_POINTS) extends Chart[C](originalData, maxPoints) {
 
-  def mToSeq(t:MagicRenderPoint):Seq[(String, Any)] = t.data.toSeq
+  def mToSeq(t: MagicRenderPoint): Seq[(String, Any)] = t.data.toSeq
 
-  override val scripts = List(Script( "magic/diyChart",
-                                      Json.obj( "js" → s"var js = $js;", "headers" → headers,
-                                                "width" → sizes._1, "height" → sizes._2)))
+  override val scripts = List(Script(
+    "magic/diyChart",
+    Json.obj("js" → s"var js = $js;", "headers" → headers,
+      "width" → sizes._1, "height" → sizes._2)))
 }

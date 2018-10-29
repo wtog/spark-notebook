@@ -1,17 +1,17 @@
 package com.datafellas.g3nerator.model
 
-import java.io.{File, FileWriter, PrintWriter}
+import java.io.{ File, FileWriter, PrintWriter }
 
 import com.typesafe.config.Config
 
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 
 trait Materializer {
-  def materialize(file: File, content:String) : Try[Unit]
+  def materialize(file: File, content: String): Try[Unit]
 }
 
 class FileSystemMaterializer() extends Materializer {
-  override def materialize(file: File, content:String) = {
+  override def materialize(file: File, content: String) = {
     if (file.isDirectory) {
       Failure(new RuntimeException("Artifact target cannot be a directory: " + file.getAbsolutePath))
     } else {
@@ -24,7 +24,7 @@ class FileSystemMaterializer() extends Materializer {
   }
 }
 
-class Artifact[S <: Artifact.State] (val fd: File, val content: String) {
+class Artifact[S <: Artifact.State](val fd: File, val content: String) {
 
   import Artifact.State._
 
@@ -34,7 +34,7 @@ class Artifact[S <: Artifact.State] (val fd: File, val content: String) {
 
   override def equals(other: Any): Boolean = {
     other match {
-      case o:Artifact[_] => (this.fd == o.fd) && (this.content == o.content)
+      case o: Artifact[_] => (this.fd == o.fd) && (this.content == o.content)
       case _ => false
     }
   }
@@ -50,5 +50,5 @@ object Artifact {
     sealed trait Unmaterialized extends State
     sealed trait Materialized extends State
   }
-  def apply(fd:File, content:String) : Artifact[State.Unmaterialized] = new Artifact[State.Unmaterialized](fd, content)
+  def apply(fd: File, content: String): Artifact[State.Unmaterialized] = new Artifact[State.Unmaterialized](fd, content)
 }

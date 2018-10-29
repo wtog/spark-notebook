@@ -14,11 +14,12 @@ import notebook.Notebook
 import com.datafellas.g3nerator.model.Artifact.State._
 import notebook.NBSerializer.CodeCell
 
-import scala.util.{Success, Try}
+import scala.util.{ Success, Try }
 
-class Job( val project: Project,
-           val repo: File,
-           val root: File ) {
+class Job(
+  val project: Project,
+  val repo: File,
+  val root: File) {
 
   import Job._
   //[gm!] for this to work, notebook metadata must be mandatory
@@ -44,8 +45,7 @@ class Job( val project: Project,
   val prodHadoopVersion = project.productionConfig.map(_.hadoopVersion).getOrElse(hadoopVersion)
   val customDeps = metadata.customDeps.getOrElse(Nil) ::: List(
     """- com.typesafe.akka % _ % _""",
-    """- com.google.guava % _ % _"""
-  )
+    """- com.google.guava % _ % _""")
   val uuid = snb.metadata.map(_.id).getOrElse("id-not-found")
   val notebookName = snb.normalizedName
 
@@ -61,7 +61,7 @@ class Job( val project: Project,
   lazy val `root/compile.statuscode` = root("compile.statuscode")
   lazy val `root/gen.sh` = root("gen.sh")
   lazy val `root/build.sbt` = root("build.sbt")
-  lazy val `root/project`= root / "project"
+  lazy val `root/project` = root / "project"
   lazy val `root/project/build.properties` = `root/project`("build.properties")
   lazy val `root/project/plugins.sbt` = `root/project`("plugins.sbt")
   // code/config artifacts
@@ -69,13 +69,13 @@ class Job( val project: Project,
   lazy val `root/src/main/scala` = root / "src/main/scala"
   lazy val `root/src/main/scala/App.scala` = `root/src/main/scala`("App.scala")
   lazy val `root/src/main/scala/Classes.scala` = `root/src/main/scala`("Classes.scala")
-  lazy val `root/src/main/resources` = root/ "src/main/resources/"
+  lazy val `root/src/main/resources` = root / "src/main/resources/"
   lazy val `root/src/main/resources/notebook.snb.ipynb` = `root/src/main/resources`("notebook.snb.ipynb")
   lazy val `root/src/main/resources/application.conf` = `root/src/main/resources`("application.conf")
   lazy val `root/target` = root / "target"
   lazy val `root/target/debian_pkg.deb` = `root/target`(library.debianPackage)
   // mocked widgets / charts
-  lazy val `root/src/main/scala/MockedCharts.scala` =  `root/src/main/scala`("MockedCharts.scala")
+  lazy val `root/src/main/scala/MockedCharts.scala` = `root/src/main/scala`("MockedCharts.scala")
 
   // spark artifacts
   lazy val `root/spark-lib` = root / "spark-lib"
@@ -93,29 +93,27 @@ class Job( val project: Project,
     `root/project/plugins.sbt`,
     `root/spark-lib`,
     //  `root/target`(library.jarTargetPath),
-    `root/src`
-  )
+    `root/src`)
   lazy val artifactsToClean = sourceArchiveFiles ++ Seq(
     `root/compile.statuscode`,
     `root/sources.zip`,
     `root/out` // clean old logs
   )
 
-
   private var generated = false
   def isGenerated = generated
 
-  def artifacts(local:Boolean): List[Artifact[Unmaterialized]] = {
+  def artifacts(local: Boolean): List[Artifact[Unmaterialized]] = {
     LOG.info("Generating job artifacts")
-    val jobArtifacts = List(Artifact(`root/project/plugins.sbt`, Job.Build.Sbt.plugins),
+    val jobArtifacts = List(
+      Artifact(`root/project/plugins.sbt`, Job.Build.Sbt.plugins),
       Artifact(`root/project/build.properties`, Job.Build.properties),
       Artifact(`root/build.sbt`, build),
       Artifact(`root/src/main/scala/App.scala`, app()),
       Artifact(`root/src/main/scala/Classes.scala`, classes()),
       Artifact(`root/src/main/scala/MockedCharts.scala`, mockedChartsCode),
       Artifact(`root/src/main/resources/application.conf`, appConfig()),
-      Artifact(`root/gen.sh`, genScript(local))
-    )
+      Artifact(`root/gen.sh`, genScript(local)))
     snb.rawContent.foldLeft(jobArtifacts)((artifacts, raw) =>
       Artifact(`root/src/main/resources/notebook.snb.ipynb`, raw) :: artifacts)
   }
@@ -140,15 +138,14 @@ class Job( val project: Project,
     ZipArchiveUtil.createArchiveRecursively(
       rootPath = root.getAbsolutePath,
       inputFiles = sourceArchiveFiles.filter(_.exists).map(_.getAbsolutePath),
-      outputFilename = tmpFileName
-    )
+      outputFilename = tmpFileName)
     tmpFile.renameTo(`root/sources.zip`)
   }
 
   def generateOnly(local: Boolean): Try[Unit] = {
     val artfs = artifacts(local)
     val materializedArtifacts = materialize(artfs)
-    materializedArtifacts.foldLeft(Success(()):Try[Unit]){(res, artf)=> res.flatMap(e=> artf.map(_=>()))}
+    materializedArtifacts.foldLeft(Success(()): Try[Unit]) { (res, artf) => res.flatMap(e => artf.map(_ => ())) }
   }
 
   def run(genScript: File, output: File): Future[Unit] = {
@@ -162,20 +159,19 @@ class Job( val project: Project,
   }
 
   // This needs another refactoring round for error handling
-  def publish(local: Boolean): Future[Unit] =  {
+  def publish(local: Boolean): Future[Unit] = {
     cleanOldArtifacts()
     val artfs = artifacts(local)
     val materializedArtifacts = materialize(artfs)
-    val maybeBuildScript = materializedArtifacts.collect{
+    val maybeBuildScript = materializedArtifacts.collect {
       case Success(artf) if artf.fd == `root/gen.sh` => artf.fd
     }.headOption
-    val buildResult = maybeBuildScript.map {script => run(script, `root/out`)}
+    val buildResult = maybeBuildScript.map { script => run(script, `root/out`) }
       .getOrElse(Future.failed(new RuntimeException("Could not generate gen script")))
 
     import ExecutionContext.Implicits.global
     buildResult.andThen { case _ => writeSourcesZip() }
   }
-
 
   def indentLines(str: String, nChars: Int = 2) = {
     val indent = " " * nChars
@@ -281,17 +277,19 @@ class Job( val project: Project,
       s"""bashScriptExtraDefines += \"\"\"addJava "$a"\"\"\""""
     }.mkString("\n\n")
 
-    val artifactoryPublish:String = project.dependencyConfig.artifactory.map { case ((pull, push), credOpt) =>
-      val cred = credOpt.map { case (user, password) =>
-        val host = new java.net.URI(push).getHost
-        s"""credentials += Credentials("Artifactory Realm", "$host", "$user", "$password")"""
-      }.getOrElse("")
+    val artifactoryPublish: String = project.dependencyConfig.artifactory.map {
+      case ((pull, push), credOpt) =>
+        val cred = credOpt.map {
+          case (user, password) =>
+            val host = new java.net.URI(push).getHost
+            s"""credentials += Credentials("Artifactory Realm", "$host", "$user", "$password")"""
+        }.getOrElse("")
 
-      val addAssembly = project.productionConfig.map { _ =>
-        "addArtifact(artifact in (Compile, assembly), assembly).settings"
-      }.getOrElse("")
+        val addAssembly = project.productionConfig.map { _ =>
+          "addArtifact(artifact in (Compile, assembly), assembly).settings"
+        }.getOrElse("")
 
-      val publish = s"""|
+        val publish = s"""|
       |$addAssembly
       |
       |publishTo := Some("Artifactory PUSH Realm" at "$push")
@@ -302,11 +300,12 @@ class Job( val project: Project,
       |
       |""".stripMargin.trim
 
-      publish
+        publish
     }.getOrElse("")
 
-    val artifactoryResolver:String = project.dependencyConfig.artifactory.map { case ((pull, push), _) =>
-      s"""resolvers += "Adastyx PULL Artifactory" at "${pull}""""
+    val artifactoryResolver: String = project.dependencyConfig.artifactory.map {
+      case ((pull, push), _) =>
+        s"""resolvers += "Adastyx PULL Artifactory" at "${pull}""""
     }.getOrElse("")
 
     val providedArtifact = "% \"provided\""
@@ -500,9 +499,10 @@ class Job( val project: Project,
       val customSparkConf = meta.customSparkConf.flatMap { customConf =>
         Reads.map[String].reads(customConf).asOpt
       }.map { kvMap =>
-        kvMap.map { case (k, v) =>
-          val value = v.toString.replaceAll("\"", "\\\\\"")
-          s""" $k : "$value"  """
+        kvMap.map {
+          case (k, v) =>
+            val value = v.toString.replaceAll("\"", "\\\\\"")
+            s""" $k : "$value"  """
         }.mkString("\n")
       }
 
@@ -602,7 +602,7 @@ class Job( val project: Project,
     |""".stripMargin
   }
 
-  def loadCustomVars() : String = {
+  def loadCustomVars(): String = {
     val customVars = snb.metadata.flatMap(_.customVars)
       .map { vars =>
         val customVars = vars.map { case (k, v) => s"""  val $k = customVars.getString("$k") """ }.mkString("// custom variables\n", "\n", "")
@@ -624,7 +624,7 @@ class Job( val project: Project,
     trimmed.startsWith("class") || trimmed.startsWith("case class")
   }
 
-  implicit class CodeCellImplicits(cell: CodeCell){
+  implicit class CodeCellImplicits(cell: CodeCell) {
     def isInterpretedCell: Boolean = cell.sourceString.trim.startsWith(":")
     def isRegularCodeCell: Boolean = {
       Seq(None, Some("scala")).contains(cell.language) &&
@@ -633,42 +633,41 @@ class Job( val project: Project,
     }
   }
 
-  def buildMainCode():String = {
+  def buildMainCode(): String = {
     val imports = snb.metadata.get.customImports.getOrElse(Nil).mkString("\n")
     val uuid = snb.metadata.map(_.id).getOrElse("id-not-found")
     val customVars = loadCustomVars()
     val code = snb.cells.map { cells =>
       val cs = cells.collect {
-        case cell : notebook.NBSerializer.CodeCell if cell.isRegularCodeCell && !isClassDefinition(cell.sourceString)=>
-            cell.metadata.id → cell.sourceString
+        case cell: notebook.NBSerializer.CodeCell if cell.isRegularCodeCell && !isClassDefinition(cell.sourceString) =>
+          cell.metadata.id → cell.sourceString
       }
-      val code = cs.map{ case (id, code) => id → code.split("\n").map { s => s"  $s" }.mkString("\n") }
-                  .map{ case (id, code) => (s"\n\n  /* -- Code Cell: ${id} -- */ \n\n$code") }
-                  .mkString("\n/****************/\n").trim
+      val code = cs.map { case (id, code) => id → code.split("\n").map { s => s"  $s" }.mkString("\n") }
+        .map { case (id, code) => (s"\n\n  /* -- Code Cell: ${id} -- */ \n\n$code") }
+        .mkString("\n/****************/\n").trim
       code
     }.getOrElse("//NO CELLS!")
-
 
     List(imports, customVars, code, stopContext).mkString("\n")
   }
 
-  def buildClasses() : String = {
-      val imports = snb.metadata.get.customImports.getOrElse(Nil).mkString("\n")
-      val code = snb.cells.map { cells =>
-        val cs = cells.collect {
-          case cell : notebook.NBSerializer.CodeCell if cell.isRegularCodeCell && isClassDefinition(cell.sourceString)=>
-            cell.metadata.id → cell.sourceString
-        }
-        val code = cs.map{ case (id, code) => (id, code.split("\n").map {s => "  " + s}.mkString("\n")) }
-          .map{ case (id, code) => (s"\n\n  /* -- Code Cell: ${id} -- */ \n\n$code") }
-          .mkString("\n/****************/\n").trim
-        code
-      }.getOrElse("//NO CELLS!")
-      val separator = "  //---//"
-      List(imports, separator, code).mkString("\n")
+  def buildClasses(): String = {
+    val imports = snb.metadata.get.customImports.getOrElse(Nil).mkString("\n")
+    val code = snb.cells.map { cells =>
+      val cs = cells.collect {
+        case cell: notebook.NBSerializer.CodeCell if cell.isRegularCodeCell && isClassDefinition(cell.sourceString) =>
+          cell.metadata.id → cell.sourceString
+      }
+      val code = cs.map { case (id, code) => (id, code.split("\n").map { s => "  " + s }.mkString("\n")) }
+        .map { case (id, code) => (s"\n\n  /* -- Code Cell: ${id} -- */ \n\n$code") }
+        .mkString("\n/****************/\n").trim
+      code
+    }.getOrElse("//NO CELLS!")
+    val separator = "  //---//"
+    List(imports, separator, code).mkString("\n")
   }
 
-  def mockedChartsCode : String = {
+  def mockedChartsCode: String = {
     """
       |package notebook.front.widgets.charts
       |
@@ -826,7 +825,7 @@ object Job {
 
     object Sbt {
       val version = "0.13.9"
-      val plugins =  s"""
+      val plugins = s"""
         |addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.7.5")
         |
         |addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.1.6")

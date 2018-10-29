@@ -1,7 +1,7 @@
 package notebook.front.widgets
 
 import notebook.front.Widget
-import org.apache.hadoop.fs.{FileUtil, FileSystem, Path}
+import org.apache.hadoop.fs.{ FileUtil, FileSystem, Path }
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.DataFrame
 
@@ -12,7 +12,7 @@ case class DownloadCsv(df: DataFrame, webHdfsUserName: String = "hive") extends 
 
   lazy val toHtml = {
     <div class="download-csv">
-      <a target="_blank" href={link}>Download here</a>
+      <a target="_blank" href={ link }>Download here</a>
     </div>
   }
 }
@@ -37,8 +37,7 @@ object SpreadsheetOutput {
         fs, dstPath,
         /* deleteSource = */ true,
         /* conf = */ fs.getConf,
-        /* addString = */ null
-      )
+        /* addString = */ null)
     }
   }
 
@@ -52,8 +51,8 @@ object SpreadsheetOutput {
   }
 
   /**
-    * @param hdfsPath - like /user/someuser/someFileName
-    */
+   * @param hdfsPath - like /user/someuser/someFileName
+   */
   def webHdfsDownloadLink(hdfsPath: String, userName: String = "hive") = {
     // operations described at https://goo.gl/i0bt6m
     sys.env.get("WEB_HDFS_URL") match {

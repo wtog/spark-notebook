@@ -1,14 +1,13 @@
 package notebook.io
 
-
-import java.io.{File, FileFilter}
-import java.nio.file.{Path, Paths}
+import java.io.{ File, FileFilter }
+import java.nio.file.{ Path, Paths }
 
 import notebook.NBSerializer.Metadata
 import notebook._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait NotebookProvider {
 
@@ -35,15 +34,15 @@ trait NotebookProvider {
     for {
       moved <- moveInternal(src, dest)
       res <- if (srcName == destName) {
-          Future.successful(dest)
-        } else {
+        Future.successful(dest)
+      } else {
         renameInternal(moved, destName)
       }
     } yield res
   }
 
   // physically moves the notebook, following the logic inherent to the provider
-  def moveInternal(src:Path, dest: Path)(implicit ev: ExecutionContext): Future[Path]
+  def moveInternal(src: Path, dest: Path)(implicit ev: ExecutionContext): Future[Path]
 
   // Renames the internal data of a notebook
   final def renameInternal(path: Path, newName: String)(implicit ev: ExecutionContext): Future[Path] = {
@@ -58,9 +57,9 @@ trait NotebookProvider {
   }
 
   // retrieves available versions of the provided notebook path. To be extended by providers that support versioning.
-  def versions(path:Path)(implicit ev: ExecutionContext): Future[List[Version]] = Future.successful(Nil)
+  def versions(path: Path)(implicit ev: ExecutionContext): Future[List[Version]] = Future.successful(Nil)
 
-  private [io] lazy val listFilter = new FileFilter() {
+  private[io] lazy val listFilter = new FileFilter() {
     override def accept(file: File): Boolean = listingPolicy(file)
   }
 
@@ -72,7 +71,7 @@ trait NotebookProvider {
         .filter(_.length > 0) //toList fails if listFiles is empty
         .map(_.toList)
         .getOrElse(Nil)
-        .map(f => (f.getName, relativePath(f),f))
+        .map(f => (f.getName, relativePath(f), f))
         .collect {
           case (name, relPath, file) =>
             if (isNotebookFile(file))
@@ -86,13 +85,11 @@ trait NotebookProvider {
   }
 }
 
-case class Version (id: String, message: String, timestamp: Long)
-
+case class Version(id: String, message: String, timestamp: Long)
 
 object NotebookProvider {
   def isNotebookFile(f: File): Boolean = f.isFile && Notebook.isNotebookFile(f.getName)
   def isVisibleDirectory(f: File): Boolean = f.isDirectory && !f.getName.startsWith(".")
-  def DefaultListingPolicy(f:File): Boolean = isNotebookFile(f) || isVisibleDirectory(f)
+  def DefaultListingPolicy(f: File): Boolean = isNotebookFile(f) || isVisibleDirectory(f)
 }
-
 

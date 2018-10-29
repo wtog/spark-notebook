@@ -9,25 +9,24 @@ class DropDown[A](options: Seq[A], toString: A => String = (a: A) => a.toString)
   private lazy val _optionsConnection = JSBus.createConnection
   lazy val optionsConnection = _optionsConnection.biMap[Seq[A]](
     (
-    s: Seq[A]) => JsArray(s.zipWithIndex map { case (opt, i) => Json.obj("text" -> toString(opt), "index" -> i) } toList).asInstanceOf[JsValue],
-    (_: JsValue) => Seq[A]()
-  )
+      s: Seq[A]) => JsArray(s.zipWithIndex map { case (opt, i) => Json.obj("text" -> toString(opt), "index" -> i) } toList).asInstanceOf[JsValue],
+    (_: JsValue) => Seq[A]())
 
   private lazy val _selected = JSBus.createConnection
   lazy val selected = _selected.biMap[A](
-  { (a: A) =>
-    JsNumber(options.indexOf(a)).asInstanceOf[JsValue]
-  }, { (v: JsValue) =>
-    options(v.as[Int])
-  }
-  )
+    { (a: A) =>
+      JsNumber(options.indexOf(a)).asInstanceOf[JsValue]
+    }, { (v: JsValue) =>
+      options(v.as[Int])
+    })
 
   optionsConnection <-- Connection.just(options)
 
   lazy val toHtml =
     <select data-bind="options: options, optionsText: 'text', optionsValue: 'index', value: selectedIndex, fireChange: true">
-      {scopedScript(
-      """
+      {
+        scopedScript(
+          """
         |req( ['observable', 'knockout'],
         |  function (O, ko) {
         |    ko.applyBindings({
@@ -37,8 +36,8 @@ class DropDown[A](options: Seq[A], toString: A => String = (a: A) => a.toString)
         |    this);
         |  }
         |);""".stripMargin,
-      Json.obj("optionsId" -> _optionsConnection.id, "selectedIndexId" -> _selected.id)
-    )}
+          Json.obj("optionsId" -> _optionsConnection.id, "selectedIndexId" -> _selected.id))
+      }
     </select>
 }
 

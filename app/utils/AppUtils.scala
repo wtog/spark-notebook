@@ -17,8 +17,7 @@ object AppUtils {
   lazy val kernelSystem = ActorSystem(
     "NotebookServer",
     nbServerConf,
-    play.api.Play.classloader
-  )
+    play.api.Play.classloader)
 
   def isVersioningSupported = notebookManager.provider.isVersioningSupported
 
@@ -31,11 +30,10 @@ object AppUtils {
       ".proxyPort",
       ".proxyUser",
       ".proxyPassword",
-      ".nonProxyHosts"
-    ).map(e => pre + e)
+      ".nonProxyHosts").map(e => pre + e)
 
-    def mapper = (path:String) => path → current.configuration.getString(path)
-    def collecter:PartialFunction[(String, Option[String]),(String, String)] = { case (x:String, Some(y:String)) => x → y }
+    def mapper = (path: String) => path → current.configuration.getString(path)
+    def collecter: PartialFunction[(String, Option[String]), (String, String)] = { case (x: String, Some(y: String)) => x → y }
     //Proxy
     val http = proxyKeys("http") map mapper collect collecter
     val https = proxyKeys("https") map mapper collect collecter

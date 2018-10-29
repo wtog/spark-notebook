@@ -1,6 +1,6 @@
 package notebook.io
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{ Files, Path }
 
 object FileOperations {
 

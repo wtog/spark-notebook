@@ -3,17 +3,17 @@ package notebook.server
 import java.io._
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Path, Paths}
+import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 import java.util.Date
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ Await, Future }
+import scala.util.{ Failure, Success, Try }
 import notebook.NBSerializer._
 import notebook.io.Version
-import notebook.{Notebook, Resource}
+import notebook.{ Notebook, Resource }
 import org.apache.commons.io.FileUtils
 import play.api.Logger
 import play.api.libs.json._
@@ -38,7 +38,7 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
   val name = notebookConfig.projectName // TODO: Whatever uses this name, should be using config.projectName directly, for sure...
 
   def forbidInViewer[T](block: => T): T = {
-    if (!viewer){
+    if (!viewer) {
       block
     } else {
       throw new IllegalStateException("This action is not allowed in viewer mode")
@@ -79,7 +79,7 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
     customImports: Option[List[String]] = None,
     customArgs: Option[List[String]] = None,
     customSparkConf: Option[JsObject] = None,
-    name:Option[String] = None): String = forbidInViewer {
+    name: Option[String] = None): String = forbidInViewer {
     val sep = if (path.last == '/') "" else "/"
     val fpath = name.map(path + sep + _ + extension).getOrElse(incrementFileName(path + sep + "Untitled"))
     val nb = Notebook(
@@ -95,8 +95,7 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
       Some(Nil),
       None,
       None,
-      None
-    )
+      None)
     save(fpath, nb, overwrite = false)
     fpath
   }
@@ -108,7 +107,7 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
       val newName = getName(newPath)
       val readExistingAndSaveNewNb: Future[String] = Notebook.deserializeFuture(nb.data).map { oldNB =>
         val newNb = Notebook(oldNB.metadata.map(_.copy(id = Notebook.getNewUUID, name = newName)), oldNB.cells, oldNB.worksheets, oldNB.autosaved, None)
-        save(newPath,newNb, overwrite = false)
+        save(newPath, newNb, overwrite = false)
         newPath
       }
       Await.result(readExistingAndSaveNewNb, DefaultOperationTimeout)
@@ -121,19 +120,19 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
   }
 
   /**
-    * Creates a new directory with name "name" under the provided path relative to this server's root directory
-    *
-    * @param parent the relative path that will be parent to the new directory
-    * @param name the name of the new directory
-    * @return a string representing the new path relative to the parent
-    */
-  def mkDir(parent:String, name:String): Try[String] = {
+   * Creates a new directory with name "name" under the provided path relative to this server's root directory
+   *
+   * @param parent the relative path that will be parent to the new directory
+   * @param name the name of the new directory
+   * @return a string representing the new path relative to the parent
+   */
+  def mkDir(parent: String, name: String): Try[String] = {
     val base = new File(notebookDir, parent)
     val newDir = new File(base, name)
     if (newDir.mkdirs()) {
       Success(newDir.getAbsolutePath.diff(base.getAbsolutePath))
     } else {
-        Failure(new DirectoryCreationException(newDir))
+      Failure(new DirectoryCreationException(newDir))
     }
   }
 
@@ -160,7 +159,7 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
     (newname, destPath)
   }
 
-  def save(path: String, notebook: Notebook, overwrite: Boolean, message: Option[String]= None): (String, String) = forbidInViewer {
+  def save(path: String, notebook: Notebook, overwrite: Boolean, message: Option[String] = None): (String, String) = forbidInViewer {
     Logger.info(s"save at path $path with message $message")
     val file = notebookFile(path)
     if (!overwrite && file.exists()) {
@@ -178,10 +177,10 @@ class NotebookManager(val notebookConfig: NotebookConfig) {
     Await.result(provider.versions(absolutePath(path)), DefaultOperationTimeout)
   }
 
-  def restoreCheckpoint(path:String, id:String): Option[(String, String, String)] = {
-    val notebookCheckpoint =  provider.get(absolutePath(path), Some(Version(id,"", 1L))).map{ nb =>
+  def restoreCheckpoint(path: String, id: String): Option[(String, String, String)] = {
+    val notebookCheckpoint = provider.get(absolutePath(path), Some(Version(id, "", 1L))).map { nb =>
       val lastModifiedTime: String = NotebookInfo.formatTimestamp(nb.metadata.get.user_save_timestamp)
-      Some((lastModifiedTime , nb.name, path))
+      Some((lastModifiedTime, nb.name, path))
     }
     Await.result(notebookCheckpoint, DefaultOperationTimeout)
   }

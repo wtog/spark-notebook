@@ -1,10 +1,10 @@
 package notebook
 
 /**
-  * Spark JobGroups are used to track which jobs are associated to which cells
-  * - jobGroupID maps to 'cell-id'
-  * - description contains cell start time & code-snippet
-  */
+ * Spark JobGroups are used to track which jobs are associated to which cells
+ * - jobGroupID maps to 'cell-id'
+ * - description contains cell start time & code-snippet
+ */
 object JobTracking {
   def jobGroupId(cellId: String) = s"cell-$cellId"
 

@@ -2,20 +2,20 @@ package notebook.export
 
 import java.io.File
 
-import notebook.NBSerializer.{CodeCell, MarkdownCell, Output, ScalaExecuteResult, ScalaOutput, ScalaStream}
+import notebook.NBSerializer.{ CodeCell, MarkdownCell, Output, ScalaExecuteResult, ScalaOutput, ScalaStream }
 import notebook.Notebook
 
 object Markdown {
-  def toBq(s:String) = s.split("\n").map(s => s"> $s").mkString("\n")
+  def toBq(s: String) = s.split("\n").map(s => s"> $s").mkString("\n")
 
-  def bq(s:String) =
+  def bq(s: String) =
     s"""|
     |><pre>
     |${toBq(s)}
     |> </pre>
     |""".stripMargin
 
-  def outputsToMarkdown(os:Option[List[Output]], dir:Option[File]):(String, Option[List[File]]) = {
+  def outputsToMarkdown(os: Option[List[Output]], dir: Option[File]): (String, Option[List[File]]) = {
     val files = new scala.collection.mutable.ArrayBuffer[File]()
     val outputs = os.getOrElse(Nil).collect {
 
@@ -60,18 +60,18 @@ object Markdown {
   }
 
   // FIXME: might require refactoring
-  def isNonEmptyCodeCell(cell: CodeCell) =  {
+  def isNonEmptyCodeCell(cell: CodeCell) = {
     val codeCellLanguages = Seq(None, Some("scala"))
     cell.cell_type == "code" &&
       cell.sourceString.trim.nonEmpty &&
       codeCellLanguages.contains(cell.language)
   }
 
-  def generate(nb:Notebook, nbPath:String, single:Boolean):Option[Either[String, File]] = {
+  def generate(nb: Notebook, nbPath: String, single: Boolean): Option[Either[String, File]] = {
     // make sure file names dont contain funny symbols
     val name = nbPath.replace("/", "_")
-    val (dir,images) = if (!single) {
-      val dir = new File(sys.props("java.io.tmpdir"), name+"-"+System.nanoTime)
+    val (dir, images) = if (!single) {
+      val dir = new File(sys.props("java.io.tmpdir"), name + "-" + System.nanoTime)
       dir.mkdir
       val images = new File(dir, "images")
       images.mkdir
@@ -79,7 +79,7 @@ object Markdown {
     } else { (None, None) }
 
     nb.cells.map { cells =>
-      val csFiles:List[(String, Option[List[File]])]= cells.collect {
+      val csFiles: List[(String, Option[List[File]])] = cells.collect {
         case cell: CodeCell if isNonEmptyCodeCell(cell) =>
           val source = cell.sourceString
 
@@ -98,7 +98,7 @@ object Markdown {
           |$outputsMarkdown
           |""".stripMargin -> files
 
-        case MarkdownCell(_, _, i)  if i.trim.nonEmpty => i -> None
+        case MarkdownCell(_, _, i) if i.trim.nonEmpty => i -> None
       }
       val (cs, filesList) = csFiles.map(x => (x._1, x._2.getOrElse(Nil))).unzip
       val files = filesList.flatten
@@ -106,19 +106,19 @@ object Markdown {
       if (single) {
         Left(fc)
       } else {
-        val mdFile = new File(dir.get, name+".md")
+        val mdFile = new File(dir.get, name + ".md")
         mdFile.createNewFile
         val w = new java.io.FileWriter(mdFile)
         w.write(fc)
         w.close()
 
-        val zipFile = new File(dir.get, name+".zip")
+        val zipFile = new File(dir.get, name + ".zip")
         zipFile.createNewFile
         val baos = new java.io.FileOutputStream(zipFile)
         val zip = new java.util.zip.ZipOutputStream(baos)
 
-        def write(files:List[File], prefix:String) = files.foreach { f =>
-          zip.putNextEntry(new java.util.zip.ZipEntry(prefix+f.getName))
+        def write(files: List[File], prefix: String) = files.foreach { f =>
+          zip.putNextEntry(new java.util.zip.ZipEntry(prefix + f.getName))
           val in = new java.io.BufferedInputStream(new java.io.FileInputStream(f))
           var b = in.read()
           while (b > -1) {

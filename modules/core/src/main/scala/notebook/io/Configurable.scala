@@ -1,12 +1,12 @@
 package notebook.io
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import notebook.util.Logging
 
 trait Configurable[T] {
-  def apply(config: Config = ConfigFactory.empty())(implicit ec:ExecutionContext) : Future[T]
+  def apply(config: Config = ConfigFactory.empty())(implicit ec: ExecutionContext): Future[T]
 }
 
 class ConfigurationMissingException(val key: String) extends Exception(s"Key missing: [$key]") with Logging {

@@ -54,18 +54,15 @@ class WebSocketKernelActor(
       val content = json \ "content"
 
       msgType.get match {
-          // This msg is sent after Browser Kernel/session is ready, should do well for init
+        // This msg is sent after Browser Kernel/session is ready, should do well for init
         case JsString("kernel_info_request") =>
           ws.send(header, session_id, "info", "shell",
             Json.obj(
               "language_info" -> Json.obj(
                 "name" → "scala",
                 "file_extension" → "scala",
-                "codemirror_mode" → "text/x-scala"
-              ),
-              "extension" → "scala"
-            )
-          )
+                "codemirror_mode" → "text/x-scala"),
+              "extension" → "scala"))
           webSocketService.socketActor ! WebUIReadyNotification(ws)
         case JsString("interrupt_cell_request") =>
           val JsString(cellId) = (content \ "cell_id").get

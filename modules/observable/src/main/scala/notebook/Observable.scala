@@ -1,6 +1,6 @@
 package notebook
 
-import rx.lang.scala.{Observable => RxObservable, Observer => RxObserver, _}
+import rx.lang.scala.{ Observable => RxObservable, Observer => RxObserver, _ }
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,7 +34,6 @@ trait MappingObservable[A, B] extends Observable[B] {
 
   def subscribe(observer: Observer[B]) = innerObservable.subscribe(observer map observableMapper)
 }
-
 
 object Observable {
   def noop[T]: Observable[T] = new WrappedObservable[T](RxObservable.never)

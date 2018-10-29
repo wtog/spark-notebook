@@ -41,18 +41,17 @@ trait JsWorld[I, O] extends Widget with IODataConnector[I, O] {
   lazy val toHtml = {
     //class="container"
     val container = <div>
-      {scopedScript(
-        s"req($js, $call);",
-        Json.obj(
-          "dataId" -> dataConnection.id,
-          "dataInit" -> json,
-          "genId" → id
-        ) ++ thisJsExtension
-      )}
-    </div>
+                      {
+                        scopedScript(
+                          s"req($js, $call);",
+                          Json.obj(
+                            "dataId" -> dataConnection.id,
+                            "dataInit" -> json,
+                            "genId" → id) ++ thisJsExtension)
+                      }
+                    </div>
     content.map(c => container.copy(child = container.child ++ c)).getOrElse(container)
   }
-
 
 }
 
@@ -60,8 +59,7 @@ class Playground[T](
   override val data: Seq[T],
   override val scripts: List[Script] = Nil,
   override val snippets: List[String] = Nil,
-  override val content: Option[scala.xml.Elem] = None
-)(implicit val singleCodec: Codec[JsValue, T]) extends JsWorld[T, T] {
+  override val content: Option[scala.xml.Elem] = None)(implicit val singleCodec: Codec[JsValue, T]) extends JsWorld[T, T] {
   override lazy val toO = identity[Seq[T]] _
   val singleToO = identity[T] _
 }

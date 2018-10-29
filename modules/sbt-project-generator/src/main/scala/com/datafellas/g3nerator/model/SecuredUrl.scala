@@ -1,18 +1,18 @@
 package com.datafellas.g3nerator.model
 
-import java.net.{URL => JURL}
+import java.net.{ URL => JURL }
 
 import com.typesafe.config.Config
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 import notebook.io.ConfigUtils._
 import notebook.io.ConfigurationMissingException
 
 /**
-  * An endpoint that requires credentials
-  */
-case class SecuredUrl(url: JURL, credentials: Option[Credentials]){
-  def toCurlCredentials:String = credentials.map(cred => s"-u '${cred.username}:${cred.password}'").getOrElse("")
+ * An endpoint that requires credentials
+ */
+case class SecuredUrl(url: JURL, credentials: Option[Credentials]) {
+  def toCurlCredentials: String = credentials.map(cred => s"-u '${cred.username}:${cred.password}'").getOrElse("")
 }
 
 object SecuredUrl {

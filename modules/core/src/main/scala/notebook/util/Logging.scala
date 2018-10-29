@@ -46,7 +46,6 @@ trait Logging {
     log.warn(messageGenerator, e)
   }
 
-
   protected[this] def ifDebugEnabled(f: => Unit) = if (log.isDebugEnabled) f
 
   protected[this] def ifTraceEnabled(f: => Unit) = if (log.isTraceEnabled) f

@@ -1,6 +1,6 @@
 package notebook.front.widgets
 
-import scala.xml.{NodeSeq, UnprefixedAttribute, Null}
+import scala.xml.{ NodeSeq, UnprefixedAttribute, Null }
 import play.api.libs.json._
 import notebook._
 import notebook.front._
@@ -11,7 +11,7 @@ trait Generic {
   def html(html: NodeSeq): Widget = new SimpleWidget(html)
 
   def reactiveHtml(initialValue: String) = new SingleConnectedWidget[String] {
-    implicit val codec:Codec[JsValue, String] = formatToCodec(None)(Format.of[String])
+    implicit val codec: Codec[JsValue, String] = formatToCodec(None)(Format.of[String])
 
     lazy val toHtml = <div data-bind="html: value">{
       scopedScript(
@@ -26,8 +26,9 @@ trait Generic {
             |  );
             |});
         """.stripMargin,
-        Json.obj("valueId" -> dataConnection.id,
-                 "initialValue" -> initialValue)
-      )}</div>
+        Json.obj(
+          "valueId" -> dataConnection.id,
+          "initialValue" -> initialValue))
+    }</div>
   }
 }

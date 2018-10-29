@@ -33,7 +33,8 @@ trait Connection[T] extends notebook.util.Logging {
   }
 }
 
-class ConcreteConnection[T](val observable: Observable[T],
+class ConcreteConnection[T](
+  val observable: Observable[T],
   val observer: Observer[T]) extends Connection[T]
 
 object Connection {
@@ -42,7 +43,6 @@ object Connection {
   def fromObserver[T](f: T => Unit) = new ConcreteConnection(Observable.noop, Observer(f))
 
   def fromObservable[T](observable: Observable[T]) = new ConcreteConnection(observable, new NoopObserver[T]())
-
 
 }
 

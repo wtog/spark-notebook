@@ -6,7 +6,7 @@ import java.util.Date
 import org.slf4j.LoggerFactory
 import play.api.libs.json._
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{ Try, Success, Failure }
 
 trait Codec[A, B] {
   def encode(x: A): B
@@ -17,12 +17,12 @@ trait Codec[A, B] {
 object JsonCodec {
   val log = LoggerFactory.getLogger(getClass)
 
-  implicit def formatToCodec[A](stringFallback:Option[String=>A]=None)(implicit f: Format[A]): Codec[JsValue, A] = new Codec[JsValue, A] {
+  implicit def formatToCodec[A](stringFallback: Option[String => A] = None)(implicit f: Format[A]): Codec[JsValue, A] = new Codec[JsValue, A] {
     val stringFallbackRead = stringFallback map (f => Reads.of[String] map f)
     val reader = stringFallbackRead match {
-        case Some(r) => f orElse r
-        case None    => f
-      }
+      case Some(r) => f orElse r
+      case None => f
+    }
 
     def decode(a: A): JsValue = f.writes(a)
 
@@ -33,15 +33,14 @@ object JsonCodec {
   }
 
   //implicit val ints:Codec[JsValue, Int] = formatToCodec(Format.of[Int])
-  implicit val longs: Codec[JsValue, Long] = formatToCodec(Some((_:String).toLong))(Format.of[Long])
-  implicit val doubles: Codec[JsValue, Double] =  formatToCodec(Some((_:String).toDouble))(Format.of[Double])
-  implicit val floats: Codec[JsValue, Float] = formatToCodec(Some((_:String).toFloat))(Format.of[Float])
+  implicit val longs: Codec[JsValue, Long] = formatToCodec(Some((_: String).toLong))(Format.of[Long])
+  implicit val doubles: Codec[JsValue, Double] = formatToCodec(Some((_: String).toDouble))(Format.of[Double])
+  implicit val floats: Codec[JsValue, Float] = formatToCodec(Some((_: String).toFloat))(Format.of[Float])
   implicit val strings: Codec[JsValue, String] = formatToCodec(Some(identity[String] _))(Format.of[String])
-  implicit val chars: Codec[JsValue, Char] = formatToCodec(Some((_:String).head))(Format(
+  implicit val chars: Codec[JsValue, Char] = formatToCodec(Some((_: String).head))(Format(
     Reads.of[String].map(_.head),
-    Writes((c: Char) => JsString(c.toString))
-  ))
-  implicit val bools: Codec[JsValue, Boolean] = formatToCodec(Some((_:String).toBoolean))(Format.of[Boolean])
+    Writes((c: Char) => JsString(c.toString))))
+  implicit val bools: Codec[JsValue, Boolean] = formatToCodec(Some((_: String).toBoolean))(Format.of[Boolean])
 
   implicit def defaultDates(implicit d: DateFormat): Codec[JsValue, Date] = {
     new Codec[JsValue, Date] {
@@ -75,12 +74,12 @@ object JsonCodec {
     }
   }
 
-  implicit def tMap[T](implicit
-    codec: Codec[JsValue, T]): Codec[JsValue, Map[String, T]] = new Codec[JsValue, Map[String, T]] {
+  implicit def tMap[T](implicit codec: Codec[JsValue, T]): Codec[JsValue, Map[String, T]] = new Codec[JsValue, Map[String, T]] {
     def encode(vs: JsValue): Map[String, T] = {
       val jo: JsObject = vs.asInstanceOf[JsObject]
-      jo.value.map { case (name, jsValue) =>
-        name -> codec.encode(jsValue)
+      jo.value.map {
+        case (name, jsValue) =>
+          name -> codec.encode(jsValue)
       }.toMap
     }
 
@@ -88,8 +87,7 @@ object JsonCodec {
       ts: Map[String, T]): JsValue = JsObject(ts.map { case (n, t) => (n, codec.decode(t)) }.toSeq)
   }
 
-  implicit def tSeq[T](implicit
-    codec: Codec[JsValue, T]): Codec[JsValue, Seq[T]] = new Codec[JsValue, Seq[T]] {
+  implicit def tSeq[T](implicit codec: Codec[JsValue, T]): Codec[JsValue, Seq[T]] = new Codec[JsValue, Seq[T]] {
     def encode(vs: JsValue) = vs.asInstanceOf[JsArray].value.map(codec.encode)
 
     def decode(ts: Seq[T]): JsValue = JsArray(ts.map(t => codec.decode(t)))
@@ -106,6 +104,5 @@ object JsonCodec {
 
     def decode(x: T): T = x
   }
-
 
 }

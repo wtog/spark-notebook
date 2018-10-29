@@ -5,13 +5,13 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor._
 import akka.remote.RemoteScope
-import com.typesafe.config.{Config, ConfigFactory}
-import notebook.kernel.pfork.{BetterFork, ForkableProcess, ProcessInfo}
+import com.typesafe.config.{ Config, ConfigFactory }
+import notebook.kernel.pfork.{ BetterFork, ForkableProcess, ProcessInfo }
 import org.apache.commons.io.FileUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 
 /**
  * Author: Ken
@@ -98,15 +98,16 @@ class RemoteActorSystem(localSystem: ActorSystem, info: ProcessInfo, remoteConte
 object RemoteActorSystem {
   val nextId = new AtomicInteger(1)
 
-  def spawn(config: Config,
-            system: ActorSystem,
-            configFile: String,
-            kernelId: String,
-            notebookPath: Option[String],
-            customArgs:Option[List[String]],
-            impersonatedUser: Option[String],
-            authUser:Option[String],
-            isVersioningSupported:Boolean): Future[RemoteActorSystem] = {
+  def spawn(
+    config: Config,
+    system: ActorSystem,
+    configFile: String,
+    kernelId: String,
+    notebookPath: Option[String],
+    customArgs: Option[List[String]],
+    impersonatedUser: Option[String],
+    authUser: Option[String],
+    isVersioningSupported: Boolean): Future[RemoteActorSystem] = {
 
     val cookiePath = ""
     val user = authUser.orElse(sys.env.get("USER")).getOrElse("unknown")

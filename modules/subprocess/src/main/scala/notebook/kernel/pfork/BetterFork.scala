@@ -1,6 +1,6 @@
 package notebook.kernel.pfork
 
-import java.io.{EOFException, File, ObjectInputStream, ObjectOutputStream}
+import java.io.{ EOFException, File, ObjectInputStream, ObjectOutputStream }
 import java.net._
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -10,13 +10,12 @@ import org.apache.commons.exec._
 import org.apache.commons.exec.util.StringUtils
 import org.apache.log4j.PropertyConfigurator
 import org.slf4j.LoggerFactory
-import play.api.{Logger, Play}
+import play.api.{ Logger, Play }
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent._
 import scala.concurrent.duration.Duration
-
 
 trait ForkableProcess {
   /**
@@ -29,11 +28,10 @@ trait ForkableProcess {
   def waitForExit()
 }
 
-
 /**
  * I am so sick of this being a thing that gets implemented everywhere. Let's abstract.
  */
-class BetterFork[A <: ForkableProcess : reflect.ClassTag](config: Config, executionContext: ExecutionContext, customArgs:Option[List[String]]) {
+class BetterFork[A <: ForkableProcess: reflect.ClassTag](config: Config, executionContext: ExecutionContext, customArgs: Option[List[String]]) {
 
   private implicit val ec = executionContext
 
@@ -59,11 +57,10 @@ class BetterFork[A <: ForkableProcess : reflect.ClassTag](config: Config, execut
 
   def vmArgs: List[String] = if (config.hasPath("vmArgs")) config.getStringList("vmArgs").toList else Nil
 
-  def classPathEnv =  Array(
-                        sys.env.get("YARN_CONF_DIR"),
-                        sys.env.get("HADOOP_CONF_DIR"),
-                        sys.env.get("EXTRA_CLASSPATH")
-                      ).collect { case Some(x) => x }
+  def classPathEnv = Array(
+    sys.env.get("YARN_CONF_DIR"),
+    sys.env.get("HADOOP_CONF_DIR"),
+    sys.env.get("EXTRA_CLASSPATH")).collect { case Some(x) => x }
 
   def classPath: IndexedSeq[String] =
     if (config.hasPath("classpath")) config.getStringList("classpath").toList.toVector else Vector.empty[String]

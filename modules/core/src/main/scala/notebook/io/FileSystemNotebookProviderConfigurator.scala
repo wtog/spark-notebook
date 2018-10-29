@@ -1,23 +1,24 @@
 package notebook.io
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{ Files, Path, Paths }
 
 import com.typesafe.config.Config
-import notebook.{Notebook, NotebookNotFoundException}
+import notebook.{ Notebook, NotebookNotFoundException }
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvider] {
 
   import FileSystemNotebookProviderConfigurator._
 
-  override def apply(config: Config)(implicit ec:ExecutionContext): Future[NotebookProvider] = {
+  override def apply(config: Config)(implicit ec: ExecutionContext): Future[NotebookProvider] = {
     val rootPath = Future {
       getAbsoluteCanonicalPath(config.getString(NotebooksDir))
-    }.recoverWith{ case t: Throwable =>
-      Future.failed(new ConfigurationMissingException(NotebooksDir))
+    }.recoverWith {
+      case t: Throwable =>
+        Future.failed(new ConfigurationMissingException(NotebooksDir))
     }
 
     rootPath.map(new FileSystemNotebookProvider(_))
@@ -31,14 +32,14 @@ class FileSystemNotebookProviderConfigurator extends Configurable[NotebookProvid
     }
 
     override def get(path: Path, version: Option[Version] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
-      Future{Files.readAllBytes(path)}.flatMap { bytes =>
+      Future { Files.readAllBytes(path) }.flatMap { bytes =>
         Notebook.deserializeFuture(new String(bytes, StandardCharsets.UTF_8))
       }
     }
 
-    override def save(path: Path, notebook: Notebook, saveSpec:Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
+    override def save(path: Path, notebook: Notebook, saveSpec: Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
       Notebook.serializeFuture(notebook).map { nb =>
-          Files.write(path, nb.getBytes(StandardCharsets.UTF_8))
+        Files.write(path, nb.getBytes(StandardCharsets.UTF_8))
       }.map(_ => notebook)
     }
 
@@ -57,8 +58,8 @@ object FileSystemNotebookProviderConfigurator {
   val NotebooksDir = "notebooks.dir"
 
   /**
-    * Get absolute path and remove any redundant ./ or ../../
-    */
+   * Get absolute path and remove any redundant ./ or ../../
+   */
   def getAbsoluteCanonicalPath(path: String): Path = {
     Paths.get(path)
       .toAbsolutePath

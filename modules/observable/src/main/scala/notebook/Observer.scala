@@ -1,6 +1,6 @@
 package notebook
 
-import rx.lang.scala.{Observable => RxObservable, Observer => RxObserver}
+import rx.lang.scala.{ Observable => RxObservable, Observer => RxObserver }
 
 /**
  * Author: Ken

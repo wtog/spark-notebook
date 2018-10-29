@@ -8,9 +8,8 @@ import org.slf4j.LoggerFactory
 import org.sonatype.aether.repository.RemoteRepository
 
 import scala.util.Try
-import scalaz.{\/, -\/, \/-}
+import scalaz.{ \/, -\/, \/- }
 import scalaz.concurrent.Task
-
 
 // FIXME: do we need a unique tmp dir per Kernel session !?
 // FIXME: remove aether leftovers
@@ -20,10 +19,11 @@ object CoursierDeps {
 
   private[this] val log = LoggerFactory.getLogger(this.getClass)
 
-  def script(cp: String,
-             remotes: List[RemoteRepository],
-             repo: java.io.File,
-             sparkVersion: String): Try[List[String]] = {
+  def script(
+    cp: String,
+    remotes: List[RemoteRepository],
+    repo: java.io.File,
+    sparkVersion: String): Try[List[String]] = {
     val (repositories, artifacts) = parseCoursierDependencies(cp, remotes, sparkVersion)
 
     log.info("Will fetch these customDeps from repositories:" + repositories)
@@ -32,8 +32,8 @@ object CoursierDeps {
   }
 
   /**
-    * convert aether crap to coursier
-    * */
+   * convert aether crap to coursier
+   */
   private[util] def parseCoursierDependencies(cp: String, remotes: List[RemoteRepository], sparkVersion: String): (Seq[Repository], Set[Dependency]) = {
     val repositories = remotes.map { remote =>
       val auth = Option(remote.getAuthentication).map(auth => coursier.core.Authentication(auth.getUsername, auth.getPassword))
@@ -53,8 +53,7 @@ object CoursierDeps {
         module = Module(organization = dep.group, name = dep.artifact),
         version = dep.version,
         exclusions = exclusions,
-        attributes = Attributes(classifier = dep.classifier.getOrElse(""))
-      )
+        attributes = Attributes(classifier = dep.classifier.getOrElse("")))
     }
     (repositories, artifacts)
   }
@@ -64,11 +63,10 @@ object CoursierDeps {
     val fetch = Fetch.from(repositories, Cache.fetch())
     val resolution = resolutionStart.process.run(fetch).run
     resolution.metadataErrors.foreach { resoveError =>
-      log.error("Cannot resolve custom dependency: "+ resoveError)
+      log.error("Cannot resolve custom dependency: " + resoveError)
     }
     val localArtifacts: Seq[FileError \/ File] = Task.gatherUnordered(
-      resolution.artifacts.map(Cache.file(_).run)
-    ).unsafePerformSync
+      resolution.artifacts.map(Cache.file(_).run)).unsafePerformSync
 
     collectFetchedFiles(localArtifacts.filter(_.isRight)).foreach { artifact =>
       log.info("Fetched artifact to:" + artifact)
@@ -83,7 +81,7 @@ object CoursierDeps {
 
   def collectFetchedFiles(localArtifacts: Seq[FileError \/ File]): Seq[File] = {
     localArtifacts.map { artifactOrErr =>
-      artifactOrErr   match {
+      artifactOrErr match {
         case -\/(fileError) => throw new RuntimeException("Dependency resolution failed: " + fileError.describe)
         case \/-(x) => x
       }

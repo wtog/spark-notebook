@@ -1,11 +1,11 @@
 package notebook.kernel
 
-import java.io.{PrintWriter, StringWriter}
+import java.io.{ PrintWriter, StringWriter }
 import java.lang.reflect.Method
 import java.net.URLDecoder
 import java.util
 
-import _root_.jline.console.completer.{ArgumentCompleter, Completer}
+import _root_.jline.console.completer.{ ArgumentCompleter, Completer }
 import notebook.front.Widget
 import notebook.repl._
 import notebook.util.Match
@@ -14,24 +14,23 @@ import org.apache.spark.SparkConf
 
 import scala.collection.JavaConversions._
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interpreter.Completion.{Candidates, ScalaCompleter}
-import scala.tools.nsc.interpreter.Results.{Error, Incomplete => ReplIncomplete, Success => ReplSuccess}
+import scala.tools.nsc.interpreter.Completion.{ Candidates, ScalaCompleter }
+import scala.tools.nsc.interpreter.Results.{ Error, Incomplete => ReplIncomplete, Success => ReplSuccess }
 import scala.tools.nsc.interpreter._
 import scala.tools.nsc.interpreter.jline.JLineDelimiter
 import scala.util.Try
 import scala.util.control.NonFatal
-import scala.xml.{NodeSeq, Text}
+import scala.xml.{ NodeSeq, Text }
 
-
-class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends ReplT {
+class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends ReplT {
   val LOG = org.slf4j.LoggerFactory.getLogger(classOf[Repl])
 
   def this() = this(Nil)
 
   private lazy val stdoutBytes = new ReplOutputStream
   private lazy val stdout = new PrintWriter(stdoutBytes)
-  private var loop:org.apache.spark.repl.HackSparkILoop = _
-  private var _classServerUri:Option[String] = None
+  private var loop: org.apache.spark.repl.HackSparkILoop = _
+  private var _classServerUri: Option[String] = None
 
   private var _initFinished: Boolean = false
   private var _evalsUntilInitFinished: Int = 0
@@ -57,20 +56,16 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     val rootDir = conf.get("spark.repl.classdir", tmp)
     val outputDir = org.apache.spark.Boot.createTempDir(rootDir, "spark-notebook-repl")
 
-
-
-
     settings.processArguments(List("-Yrepl-class-based", "-Yrepl-outdir", s"${outputDir.getAbsolutePath}", "-Yrepl-sync"), processAll = true)
 
     // fix for #52
     settings.usejavacp.value = false
 
-
     // fix for #52
     val urls: IndexedSeq[String] = {
       import java.io.File
       import java.net.URLClassLoader
-      def urls(cl:ClassLoader, acc:IndexedSeq[String]=IndexedSeq.empty):IndexedSeq[String] = {
+      def urls(cl: ClassLoader, acc: IndexedSeq[String] = IndexedSeq.empty): IndexedSeq[String] = {
         if (cl != null) {
           val us = if (!cl.isInstanceOf[URLClassLoader]) {
             acc
@@ -86,7 +81,7 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
         }
       }
       val loader = getClass.getClassLoader
-      val gurls = urls(loader).distinct//.filter(!_.contains("logback-classic"))//.filter(!_.contains("sbt/"))
+      val gurls = urls(loader).distinct //.filter(!_.contains("logback-classic"))//.filter(!_.contains("sbt/"))
       gurls
     }
 
@@ -102,13 +97,13 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     //val i = new HackIMain(settings, stdout)
     loop = new org.apache.spark.repl.HackSparkILoop(stdout, outputDir)
 
-    val fps = jars.map{ jar =>
+    val fps = jars.map { jar =>
 
       val f = scala.tools.nsc.io.File(jar).normalize
       //loop.addedClasspath = ClassPath.join(loop.addedClasspath, f.path)
       f.path
     }
-    settings.classpath.value=(classpath.distinct ::: fps).mkString(java.io.File.pathSeparator)
+    settings.classpath.value = (classpath.distinct ::: fps).mkString(java.io.File.pathSeparator)
 
     loop.process(settings)
     _classServerUri = Some(loop.outputDir.getAbsolutePath)
@@ -122,7 +117,7 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
 
   private def scalaToJline(tc: ScalaCompleter): Completer = new Completer {
     def complete(_buf: String, cursor: Int, candidates: JList[CharSequence]): Int = {
-      val buf   = if (_buf == null) "" else _buf
+      val buf = if (_buf == null) "" else _buf
       val Candidates(newCursor, newCandidates) = tc.complete(buf, cursor)
       newCandidates foreach (candidates add _)
       newCursor
@@ -160,7 +155,6 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     }
   }
 
-
   def getTypeNameOfTerm(termName: String): Option[String] = {
     val tpe = try {
       interp.typeOfTerm(termName).toString
@@ -174,12 +168,11 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
         // remove some crap
         Some(
           tpe
-          .replace("iwC$", "")
-          .replaceAll("^\\(\\)" , "") // 2.11 return types prefixed, like `()Person`
+            .replace("iwC$", "")
+            .replaceAll("^\\(\\)", "") // 2.11 return types prefixed, like `()Person`
         )
     }
   }
-
 
   /**
    * Evaluates the given code.  Swaps out the `println` OutputStream with a version that
@@ -196,10 +189,10 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
    * @param onPrintln
    * @return result and a copy of the stdout buffer during the duration of the execution
    */
-  def evaluate(code: String,
-               onPrintln: String => Unit = _ => (),
-               onNameDefinion: NameDefinition => Unit  = _ => ()
-              ): (EvaluationResult, String) = {
+  def evaluate(
+    code: String,
+    onPrintln: String => Unit = _ => (),
+    onNameDefinion: NameDefinition => Unit = _ => ()): (EvaluationResult, String) = {
     stdout.flush()
     stdoutBytes.reset()
 
@@ -233,32 +226,30 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
                 |  val rendered: _root_.notebook.front.Widget = try { %s } catch { case t:Throwable => _root_.notebook.front.widgets.html(<div class='alert alert-danger'><div>Exception in implicit renderer: {t.getMessage}</div><pre>{t.getStackTrace.mkString("\n")}</pre></div>) }
                 |  %s
                 |}""".stripMargin.format(
-                  request.importsPreamble,
-                  request.fullPath(lastHandler.definesTerm.get.toString),
-                  request.importsTrailer
-                )
-                LOG.debug(renderObjectCode)
+                request.importsPreamble,
+                request.fullPath(lastHandler.definesTerm.get.toString),
+                request.importsTrailer)
+            LOG.debug(renderObjectCode)
             if (line.compile(renderObjectCode)) {
               try {
                 // spark looks for the compressor codec from the context class loader...
                 val cp = Thread.currentThread().getContextClassLoader
-                Thread.currentThread().setContextClassLoader( interp.classLoader )
+                Thread.currentThread().setContextClassLoader(interp.classLoader)
 
                 val renderedClass2 = Class.forName(
-                  line.pathTo("$rendered")+"$", true, interp.classLoader
-                )
+                  line.pathTo("$rendered") + "$", true, interp.classLoader)
                 // restore
-                Thread.currentThread().setContextClassLoader( cp )
+                Thread.currentThread().setContextClassLoader(cp)
 
-                def getModule(c:Class[_]) = c.getDeclaredField(interp.global.nme.MODULE_INSTANCE_FIELD.toString).get(())
+                def getModule(c: Class[_]) = c.getDeclaredField(interp.global.nme.MODULE_INSTANCE_FIELD.toString).get(())
 
                 val module = getModule(renderedClass2)
 
                 val topInstance = module.getClass.getDeclaredMethod("$iw").invoke(module)
 
-                def iws(o:Class[_], instance: Any): NodeSeq = {
-                  val tryClass = o.getName+"$$iw"
-                  val o2 = Try{module.getClass.getClassLoader.loadClass(tryClass)}.toOption
+                def iws(o: Class[_], instance: Any): NodeSeq = {
+                  val tryClass = o.getName + "$$iw"
+                  val o2 = Try { module.getClass.getClassLoader.loadClass(tryClass) }.toOption
 
                   // in scala 2.11 class name formation seem changed:
                   //   when number of $iw appended to the name reached threshold, it uses a hash instead
@@ -284,12 +275,13 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
                         val r = o.getDeclaredMethod("rendered").invoke(instance)
                         val h = r.asInstanceOf[Widget].toHtml
                         h
-                      } catch { case e: NoSuchMethodException =>
-                        val err = s"Error when rendering cell result: NoSuchMethodException: " +
-                          s"in ${o.getName} which has such methods: " +
-                          s"${o.getDeclaredMethods.toSeq.map(_.toString).sorted}"
-                        LOG.error(err, e)
-                        throw e
+                      } catch {
+                        case e: NoSuchMethodException =>
+                          val err = s"Error when rendering cell result: NoSuchMethodException: " +
+                            s"in ${o.getName} which has such methods: " +
+                            s"${o.getDeclaredMethods.toSeq.map(_.toString).sorted}"
+                          LOG.error(err, e)
+                          throw e
                       }
                   }
                 }
@@ -299,8 +291,8 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
                 case NonFatal(e) =>
                   e.printStackTrace
                   LOG.error("Ooops, exception in the cell", e)
-                  <span style="color:red;">Ooops, exception in the cell: {e.getMessage}</span>
-                    <pre style="color:#999;">{ExceptionUtils.getStackTrace(e)}</pre>
+                  <span style="color:red;">Ooops, exception in the cell: { e.getMessage }</span>
+                  <pre style="color:#999;">{ ExceptionUtils.getStackTrace(e) }</pre>
               }
             } else {
               // a line like println(...) is technically a val, but returns null for some reason
@@ -308,8 +300,7 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
               Option(line.call("$result")).map { result =>
                 Text(
                   try { result.toString }
-                  catch { case e: Throwable => "Fail to `toString` the result: " + e.getMessage }
-                )
+                  catch { case e: Throwable => "Fail to `toString` the result: " + e.getMessage })
               }.getOrElse(NodeSeq.Empty)
             }
           } else {
@@ -317,8 +308,7 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
           }
 
           Success(evalValue)
-        }
-        catch {
+        } catch {
           case NonFatal(e) =>
             val ex = new StringWriter()
             e.printStackTrace(new PrintWriter(ex))
@@ -326,20 +316,20 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
         }
 
       case ReplIncomplete => Incomplete
-      case Error          => Failure(stdoutBytes.toString)
+      case Error => Failure(stdoutBytes.toString)
     }
 
-    if ( !_initFinished ) {
+    if (!_initFinished) {
       _evalsUntilInitFinished = _evalsUntilInitFinished + 1
     }
 
     (result, stdoutBytes.toString)
   }
 
-  def addCp(newJars:List[String]) = {
-    val prevCode = interp.prevRequestList.map(_.originalLine).drop( _evalsUntilInitFinished )
+  def addCp(newJars: List[String]) = {
+    val prevCode = interp.prevRequestList.map(_.originalLine).drop(_evalsUntilInitFinished)
     interp.close() // this will close the repl class server, which is needed in order to reuse `-Dspark.replClassServer.port`!
-    val r = new Repl(compilerOpts, newJars:::jars)
+    val r = new Repl(compilerOpts, newJars ::: jars)
     (r, () => prevCode foreach (c => r.evaluate(c, _ => ())))
   }
 
@@ -378,7 +368,7 @@ class Repl(val compilerOpts: List[String], val jars:List[String]=Nil) extends Re
     }
   }
 
-  override def objectInfo(line: String, position:Int): Seq[String] = {
+  override def objectInfo(line: String, position: Int): Seq[String] = {
     // CY: The REPL is stateful -- it isn't until you ask to complete
     // the thing twice does it give you the method signature (i.e. you
     // hit tab twice).  So we simulate that here... (nutty, I know)

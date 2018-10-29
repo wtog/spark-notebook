@@ -1,7 +1,7 @@
 package notebook.front
 
 import scala.runtime.BoxedUnit
-import scala.xml.{NodeBuffer, NodeSeq, Text}
+import scala.xml.{ NodeBuffer, NodeSeq, Text }
 
 /**
  * Typeclass for rendering objects of a specific type. Implement one of these and import it
@@ -49,9 +49,9 @@ trait LowPriorityRenderers {
 
   import widgets._
 
-  def renderSeq(x: Seq[_], t:String) = x match {
+  def renderSeq(x: Seq[_], t: String) = x match {
     case Nil => widgets.text("empty " + t)
-    case _   => display(x)
+    case _ => display(x)
   }
 
   implicit object mapAsTable extends Renderer[Map[_, _]] {

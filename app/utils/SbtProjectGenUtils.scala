@@ -1,7 +1,7 @@
 package utils
 
-import notebook.io.{ConfigurationMissingException, GitProvider, GitProviderConfigurator}
-import com.datafellas.g3nerator.{FileProjectStore, ProjectManager}
+import notebook.io.{ ConfigurationMissingException, GitProvider, GitProviderConfigurator }
+import com.datafellas.g3nerator.{ FileProjectStore, ProjectManager }
 import com.datafellas.notebook.adastyx.server.SbtProjectGenConfig
 import com.typesafe.config.ConfigFactory
 

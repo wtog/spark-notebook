@@ -1,6 +1,5 @@
 package com.datafellas.g3nerator.model
 
-
 trait ArtifactName {
   def name: String
 }
@@ -27,5 +26,5 @@ case class PackageName(source: String) extends ArtifactName {
 }
 
 case class LibraryName(source: String) extends ArtifactName {
-  def name: String  = ArtifactName.NonAlphanumericToDashesTrimmed(source)
+  def name: String = ArtifactName.NonAlphanumericToDashesTrimmed(source)
 }

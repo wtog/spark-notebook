@@ -482,3 +482,7 @@ javaOptions += "-Dsbt.jse.engineType=Node"
 javaOptions += " -Dsbt.jse.command=$(which node)"
 excludeDependencies ++= Seq("org.slf4j" % "slf4j-log4j12", "org.sonatype.sisu" % "sisu-guava")
 dependencyOverrides ++= Set("com.google.guava" % "guava" % "16.0.1")
+
+unmanagedSources.in(Compile, scalafix) :=
+  unmanagedSources.in(Compile).value
+    .filterNot(file => file.getName == "init.sc")

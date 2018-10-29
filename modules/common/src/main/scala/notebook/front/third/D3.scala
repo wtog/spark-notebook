@@ -11,8 +11,7 @@ class Svg[T](
   width: Int = 600,
   height: Int = 400,
   onData: String,
-  extension: String
-)(implicit val singleCodec: Codec[JsValue, T])
+  extension: String)(implicit val singleCodec: Codec[JsValue, T])
   extends Widget with DataConnector[T] {
 
   private val js = List("sandbox", onData, extension).map(
@@ -34,15 +33,14 @@ class Svg[T](
   }
 
   lazy val toHtml =
-    <svg class="d3 plot" width={width.toString} height={height.toString}
-         xmlns="http://www.w3.org/2000/svg" version="1.1">
-      {scopedScript(
-      s"req($js, $call);",
-      Json.obj(
-        "dataId" -> dataConnection.id,
-        "dataInit" -> JsonCodec.tSeq[T].decode(data)
-      )
-    )}
+    <svg class="d3 plot" width={ width.toString } height={ height.toString } xmlns="http://www.w3.org/2000/svg" version="1.1">
+      {
+        scopedScript(
+          s"req($js, $call);",
+          Json.obj(
+            "dataId" -> dataConnection.id,
+            "dataInit" -> JsonCodec.tSeq[T].decode(data)))
+      }
     </svg>
 }
 
@@ -53,14 +51,12 @@ object D3 {
     width: Int = 600,
     height: Int = 400,
     onData: String,
-    extension: String
-  )(implicit codec: Codec[JsValue, T]): Svg[T] = new Svg(data, width, height, onData, extension)
+    extension: String)(implicit codec: Codec[JsValue, T]): Svg[T] = new Svg(data, width, height, onData, extension)
 
   def linePlot[T](
     data: Seq[T],
     width: Int = 600,
-    height: Int = 400
-  )(implicit codec: Codec[(Double, Double), T]): Svg[T] = {
+    height: Int = 400)(implicit codec: Codec[(Double, Double), T]): Svg[T] = {
     val c = new Codec[JsValue, T] {
       def encode(x: JsValue): T = codec.encode(pair.encode(x))
 
@@ -68,6 +64,5 @@ object D3 {
     }
     new Svg(data, width, height, "linePlot", "consoleDir")(c)
   }
-
 
 }

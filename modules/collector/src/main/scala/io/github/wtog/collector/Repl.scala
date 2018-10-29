@@ -1,31 +1,31 @@
 package io.github.wtog.collector
 
-import java.io.{PrintWriter, StringWriter}
+import java.io.{ PrintWriter, StringWriter }
 import java.lang.reflect.Method
 import java.net.URLDecoder
 import java.util
 
-import jline.console.completer.{ArgumentCompleter, Completer}
+import jline.console.completer.{ ArgumentCompleter, Completer }
 import notebook.front.Widget
 import notebook.repl._
-import notebook.util.{InterpreterUtil, Match}
+import notebook.util.{ InterpreterUtil, Match }
 import org.apache.commons.lang3.exception.ExceptionUtils
-import scala.tools.nsc.interpreter.Results.{Error, Incomplete => ReplIncomplete, Success => ReplSuccess}
+import scala.tools.nsc.interpreter.Results.{ Error, Incomplete => ReplIncomplete, Success => ReplSuccess }
 
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interpreter.Completion.{Candidates, ScalaCompleter}
-import scala.tools.nsc.interpreter.{IMain, JLineCompletion, JList, Parsed}
+import scala.tools.nsc.interpreter.Completion.{ Candidates, ScalaCompleter }
+import scala.tools.nsc.interpreter.{ IMain, JLineCompletion, JList, Parsed }
 import scala.tools.nsc.interpreter.Results.Error
 import scala.tools.nsc.interpreter.jline.JLineDelimiter
 import scala.util.Try
 import scala.util.control.NonFatal
-import scala.xml.{NodeSeq, Text}
+import scala.xml.{ NodeSeq, Text }
 
 /**
-  * @author : tong.wang
-  * @since : 10/2/18 10:26 PM
-  * @version : 1.0.0
-  */
+ * @author : tong.wang
+ * @since : 10/2/18 10:26 PM
+ * @version : 1.0.0
+ */
 class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends ReplT {
   val LOG = org.slf4j.LoggerFactory.getLogger(classOf[Repl])
 
@@ -115,7 +115,6 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
     arg
   }
 
-
   private def listDefinedTerms(request: interp.Request): List[NameDefinition] = {
     request.handlers.flatMap { h =>
       val maybeTerm = h.definesTerm.map(_.encoded)
@@ -132,7 +131,6 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
     }
   }
 
-
   def getTypeNameOfTerm(termName: String): Option[String] = {
     val tpe = try {
       interp.typeOfTerm(termName).toString
@@ -146,31 +144,29 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
         // remove some crap
         Some(
           tpe.replace("iwC$", "")
-            .replaceAll("^\\(\\)", "")
-        )
+            .replaceAll("^\\(\\)", ""))
     }
   }
 
-
   /**
-    * Evaluates the given code.  Swaps out the `println` OutputStream with a version that
-    * invokes the given `onPrintln` callback everytime the given code somehow invokes a
-    * `println`.
-    *
-    * Uses compile-time implicits to choose a renderer.  If a renderer cannot be found,
-    * then just uses `toString` on result.
-    *
-    * I don't think this is thread-safe (largely because I don't think the underlying
-    * IMain is thread-safe), it certainly isn't designed that way.
-    *
-    * @param code
-    * @param onPrintln
-    * @return result and a copy of the stdout buffer during the duration of the execution
-    */
-  def evaluate(code: String,
-               onPrintln: String => Unit = _ => (),
-               onNameDefinion: NameDefinition => Unit = _ => ()
-              ): (EvaluationResult, String) = {
+   * Evaluates the given code.  Swaps out the `println` OutputStream with a version that
+   * invokes the given `onPrintln` callback everytime the given code somehow invokes a
+   * `println`.
+   *
+   * Uses compile-time implicits to choose a renderer.  If a renderer cannot be found,
+   * then just uses `toString` on result.
+   *
+   * I don't think this is thread-safe (largely because I don't think the underlying
+   * IMain is thread-safe), it certainly isn't designed that way.
+   *
+   * @param code
+   * @param onPrintln
+   * @return result and a copy of the stdout buffer during the duration of the execution
+   */
+  def evaluate(
+    code: String,
+    onPrintln: String => Unit = _ => (),
+    onNameDefinion: NameDefinition => Unit = _ => ()): (EvaluationResult, String) = {
     stdout.flush()
     stdoutBytes.reset()
 
@@ -201,8 +197,7 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
                 |}""".stripMargin.format(
                 request.importsPreamble,
                 request.fullPath(lastHandler.definesTerm.get.toString),
-                request.importsTrailer
-              )
+                request.importsTrailer)
             LOG.debug(renderObjectCode)
             if (line.compile(renderObjectCode)) {
               try {
@@ -259,23 +254,22 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
                 case NonFatal(e) =>
                   e.printStackTrace()
                   LOG.error("Ooops, exception in the cell", e)
-                  <span style="color:red;">Ooops, exception in the cell:
-                    {e.getMessage}
+                  <span style="color:red;">
+                    Ooops, exception in the cell:
+                    { e.getMessage }
                   </span>
-                    <pre style="color:#999;">
-                      {ExceptionUtils.getStackTrace(e)}
-                    </pre>
+                  <pre style="color:#999;">
+                    { ExceptionUtils.getStackTrace(e) }
+                  </pre>
               }
             } else {
               Option(line.call("$result")).map { result =>
                 Text(
                   try {
                     result.toString
-                  }
-                  catch {
+                  } catch {
                     case e: Throwable => "Fail to `toString` the result: " + e.getMessage
-                  }
-                )
+                  })
               }.getOrElse(NodeSeq.Empty)
             }
           } else {
@@ -283,8 +277,7 @@ class Repl(val compilerOpts: List[String], val jars: List[String] = Nil) extends
           }
 
           Success(evalValue)
-        }
-        catch {
+        } catch {
           case NonFatal(e) =>
             val ex = new StringWriter()
             e.printStackTrace(new PrintWriter(ex))

@@ -1,8 +1,22 @@
-import java.io.File
+import java.io.{File, FileReader, BufferedReader}
 import java.net.URI
 
+import notebook._
+import notebook.front._
+import notebook.front.widgets._
+import notebook.front.widgets.charts._
+import notebook.front.third.d3._
+import notebook.front.widgets.magic._
+import notebook.front.widgets.magic.Implicits._
+import notebook.JsonCodec._
+
+import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.SparkContext._
+import org.apache.spark.rdd._
 import org.apache.spark.sql._
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.functions._
+
+import scala.util.matching.Regex
 
 @transient val globalScope = new java.io.Serializable {
   @transient var execUri = Option(System.getenv("SPARK_EXECUTOR_URI"))
@@ -70,6 +84,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 
   /** Resolve a comma-separated list of paths. */
   private def resolveURIs(paths: String, testWindows: Boolean = false): String = {
+    import scala.collection.JavaConversions._
+    import scala.collection.JavaConverters._
 
     if (paths == null || paths.trim.isEmpty) {
       ""
@@ -136,11 +152,12 @@ import org.apache.spark.{SparkConf, SparkContext}
   def sc:SparkContext = sparkContext
 }
 
-import globalScope.{reset, sparkSession}
+import globalScope.{sparkSession, sparkContext, reset, sc}
 
 reset()
 
 @transient val ss = sparkSession
+import ss.implicits._
 
 println("init.sc done!")
 ()

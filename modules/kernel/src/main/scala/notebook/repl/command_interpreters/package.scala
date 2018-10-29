@@ -7,7 +7,6 @@ import notebook.util.Logging
 
 import scala.util.matching.Regex
 
-
 case class ReplCommand(outputType: String, replCommand: String)
 
 // A Helper to easily define classes implementing interpreter
@@ -58,13 +57,13 @@ package object command_interpreters {
         logDebug(s"Received sql code: [$n] $sql")
         val qs = "\"\"\""
         val name = Option(n).map(nm => s"@transient val $nm = ").getOrElse("")
-        ReplCommand(`text/html`,
+        ReplCommand(
+          `text/html`,
           s"""
              |import notebook.front.widgets.Sql
              |import notebook.front.widgets.Sql._
              |${name}new Sql(sqlContext, s$qs$sql$qs)
-             |""".stripMargin
-        )
+             |""".stripMargin)
     }
   }
 
@@ -82,24 +81,24 @@ package object command_interpreters {
 
     override val codeMatcher: CodeMatcherType = {
       case repoRegex(_) | resolverRegex(_) | cpRegex(_) | dpRegex(_, _) =>
-        ReplCommand(`text/plain`,
+        ReplCommand(
+          `text/plain`,
           s"""
              |println("This command was removed. Please use 'Edit -> Notebook metadata' menu instead.")
              |println("The later is more stable and faster.")
              |println("After editing, restart the kernel and check your browser console for logs/errors.")
-             |""".stripMargin
-        )
+             |""".stripMargin)
     }
   }
 
   /**
-    * Recognizes code prefixes related to outputType like this:
-    *
-    * :prefix
-    * code
-    *
-    */
-  case class OutputTypeMarker(prefix: String, outputType: String){
+   * Recognizes code prefixes related to outputType like this:
+   *
+   * :prefix
+   * code
+   *
+   */
+  case class OutputTypeMarker(prefix: String, outputType: String) {
     val regex: Regex = s"(?s)^:$prefix\\s*\n(.+)\\s*$$".r
 
     def matches(code: String) = regex.findFirstIn(code).isDefined
@@ -109,8 +108,8 @@ package object command_interpreters {
 
   object OutputTypeCommand {
     /**
-      * given String or scala.xml.Elem return a scala.xml.Elem
-      */
+     * given String or scala.xml.Elem return a scala.xml.Elem
+     */
     private def transformToXML(origCode: String) =
       s"""
          |def parseToXml(html: Any): scala.xml.Elem = {
@@ -133,9 +132,8 @@ package object command_interpreters {
       OutputTypeMarker("pdf", `application/pdf`),
 
       // html/svg requires output to be scala.xml.Elem, so apply this transformation
-      new OutputTypeMarker("html", `text/html`){ override def genCode(code: String) = transformToXML(code) },
-      new OutputTypeMarker("svg", `image/svg+xml`){ override def genCode(code: String) = transformToXML(code) }
-    )
+      new OutputTypeMarker("html", `text/html`) { override def genCode(code: String) = transformToXML(code) },
+      new OutputTypeMarker("svg", `image/svg+xml`) { override def genCode(code: String) = transformToXML(code) })
 
     val javascript = OutputTypeMarker("javascript", `application/javascript`)
   }
@@ -146,8 +144,9 @@ package object command_interpreters {
     override val codeMatcher: CodeMatcherType = {
       case cellContents if scalaResultMarkers.exists(_.matches(cellContents)) =>
         val matchingMarker = scalaResultMarkers.filter(_.matches(cellContents)).head
-        val replCode = cellContents match { case matchingMarker.regex(scalaCode) =>
-          matchingMarker.genCode(scalaCode)
+        val replCode = cellContents match {
+          case matchingMarker.regex(scalaCode) =>
+            matchingMarker.genCode(scalaCode)
         }
         ReplCommand(matchingMarker.outputType, replCode)
 
@@ -164,11 +163,10 @@ package object command_interpreters {
       new SqlCommand,
       new OutputTypeCommand,
       new RemovedCommandsInfo,
-      new DefaultTextHtmlInterpreter
-    )
+      new DefaultTextHtmlInterpreter)
   }
 
   def combineIntepreters(interpreters: Seq[CommandIntepreterType]): CommandIntepreterType = {
-    interpreters.reduceLeft (_ orElse _)
+    interpreters.reduceLeft(_ orElse _)
   }
 }

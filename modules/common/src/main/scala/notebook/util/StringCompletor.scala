@@ -13,8 +13,7 @@ case class Match(matchedValue: String, metadata: Map[String, String]) {
     JsObject(
       Seq(
         ("value", JsString(matchedValue)),
-        ("display_text", JsString(metadata.getOrElse("display_text", matchedValue)))
-      ))
+        ("display_text", JsString(metadata.getOrElse("display_text", matchedValue)))))
   }
 }
 

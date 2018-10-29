@@ -1,25 +1,24 @@
 package com.datafellas.g3nerator
 
-import java.io.{File, FileInputStream, FileOutputStream, IOException}
-import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
+import java.io.{ File, FileInputStream, FileOutputStream, IOException }
+import java.util.zip.{ ZipEntry, ZipFile, ZipOutputStream }
 
 import scala.collection.JavaConversions.enumerationAsScalaIterator
-import scala.io.{BufferedSource, Codec}
-
+import scala.io.{ BufferedSource, Codec }
 
 // this support zipping dirs too
 // based on
 // https://github.com/dhbikoff/Scala-Zip-Archive-Util/blob/dfdb96eff2230ea8e8825f1baa161a3d00e60e13/ZipArchiveUtil.scala
 // FIXME: check is this can be more useful https://github.com/pathikrit/better-files#zip-apis
 object ZipArchiveUtil {
-  def createArchiveRecursively(rootPath: String,
-                               inputFiles: Seq[String],
-                               outputFilename: String): Unit = {
+  def createArchiveRecursively(
+    rootPath: String,
+    inputFiles: Seq[String],
+    outputFilename: String): Unit = {
     println(
       s"rootPath: $rootPath\n" +
         s"inputFiles: $inputFiles\n" +
-        s"outputFilename: $outputFilename"
-    )
+        s"outputFilename: $outputFilename")
     val filePaths = inputFiles.map { inputFilePath =>
       createFileList(new File(inputFilePath).getAbsoluteFile, outputFilename)
     }.reduce(_ ++ _)
@@ -46,7 +45,7 @@ object ZipArchiveUtil {
   }
 
   def addFileToZipEntry(filename: String, parentPath: String,
-                        filePathsCount: Int): ZipEntry = {
+    filePathsCount: Int): ZipEntry = {
     if (filePathsCount <= 1)
       new ZipEntry(new File(filename).getName)
     else {
@@ -58,9 +57,9 @@ object ZipArchiveUtil {
   }
 
   def createZip(filePaths: List[String], outputFilename: String,
-                parentPath: String) = {
+    parentPath: String) = {
     try {
-      val fileOutputStream = new FileOutputStream(parentPath + "/"+ outputFilename)
+      val fileOutputStream = new FileOutputStream(parentPath + "/" + outputFilename)
       val zipOutputStream = new ZipOutputStream(fileOutputStream)
 
       filePaths.foreach((name: String) => {

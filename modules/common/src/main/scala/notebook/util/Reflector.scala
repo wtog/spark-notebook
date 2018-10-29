@@ -12,7 +12,7 @@ object Reflector {
     Some((terms, im))
   } catch {
     case x: Exception =>
-      LOG.warn("Exception in objToTerms: "+x.getMessage)
+      LOG.warn("Exception in objToTerms: " + x.getMessage)
       None
   }
 
@@ -49,8 +49,9 @@ object Reflector {
 
   // Return a List of (fieldName -> fieldValue) excluding fields those reflection is failing
   def toObjArray(obj: Any): List[(String, Any)] = try {
-    objToTerms(obj).map { case (terms, reflector) =>
-      terms.flatMap(getFieldValue(_, reflector))
+    objToTerms(obj).map {
+      case (terms, reflector) =>
+        terms.flatMap(getFieldValue(_, reflector))
     }.getOrElse(Nil)
   } catch {
     case x: Exception =>

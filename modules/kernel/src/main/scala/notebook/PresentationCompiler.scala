@@ -3,21 +3,21 @@ package notebook
 import notebook.util.Match
 
 import scala.collection.mutable.ArrayBuffer
-import scala.reflect.internal.util.{SourceFile, OffsetPosition}
+import scala.reflect.internal.util.{ SourceFile, OffsetPosition }
 import scala.reflect.io.VirtualDirectory
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.{Global, Response}
+import scala.tools.nsc.interactive.{ Global, Response }
 import scala.tools.nsc.reporters.ConsoleReporter
 
 class PresentationCompiler(dependencies: List[String]) {
 
-  val scripts : ArrayBuffer[String] = ArrayBuffer.empty[String]
+  val scripts: ArrayBuffer[String] = ArrayBuffer.empty[String]
 
-  def addScripts(code: String) : Unit = {
+  def addScripts(code: String): Unit = {
     scripts.+=(code)
   }
 
-  def ask[T] (op: Response[T] => Unit) : Response[T] = {
+  def ask[T](op: Response[T] => Unit): Response[T] = {
     val r = new Response[T]
     op(r)
     r
@@ -37,12 +37,12 @@ class PresentationCompiler(dependencies: List[String]) {
   def snippetPre() = "\nobject snippet {\n" + scripts.mkString("\n") + "\n"
   val snippedPost = "\n}\n"
 
-  def wrapCode(code: String) : (String,Int) = {
+  def wrapCode(code: String): (String, Int) = {
     val wrappedCode = s"${snippetPre()}$code$snippedPost"
-    (wrappedCode,snippetPre().length)
+    (wrappedCode, snippetPre().length)
   }
 
-  case class CompletionInformation(symbol : String, parameters : String, returnType: String){
+  case class CompletionInformation(symbol: String, parameters: String, returnType: String) {
     def nameAndParams = if (parameters.isEmpty) {
       symbol
     } else {
@@ -52,15 +52,15 @@ class PresentationCompiler(dependencies: List[String]) {
     def nameParamsAndReturnType = s"${nameAndParams}: ${returnType}"
   }
 
-  def completion(pos: OffsetPosition, op: (OffsetPosition,Response[List[compiler.Member]]) => Unit) : Seq[CompletionInformation] = {
+  def completion(pos: OffsetPosition, op: (OffsetPosition, Response[List[compiler.Member]]) => Unit): Seq[CompletionInformation] = {
     var result: Seq[CompletionInformation] = null
     val response = ask[List[compiler.Member]](op(pos, _))
     while (!response.isComplete && !response.isCancelled) {
-      result = compiler.ask( () => {
+      result = compiler.ask(() => {
         response.get(10) match {
           case Some(Left(t)) =>
-            t .map { m: compiler.Member =>
-              val params = m.tpe.params.map{ p =>
+            t.map { m: compiler.Member =>
+              val params = m.tpe.params.map { p =>
                 val nameAndType = s"${p.name.toString}: ${p.tpe.toString()}"
                 if (p.isParamWithDefault) s"[${nameAndType}]" else nameAndType
               }.mkString(", ")
@@ -83,33 +83,33 @@ class PresentationCompiler(dependencies: List[String]) {
     result
   }
 
-  def reload(source: SourceFile) : Unit = {
+  def reload(source: SourceFile): Unit = {
     ask[Unit](compiler.askReload(List(source), _)).get
   }
 
-  def complete(code: String, position: Int) : (String, Seq[Match]) = {
-    val (wrappedCode,positionOffset) = wrapCode(code.substring(0,position))
-    val filter1 = code.substring(0,position).split(";|\n", -1)
+  def complete(code: String, position: Int): (String, Seq[Match]) = {
+    val (wrappedCode, positionOffset) = wrapCode(code.substring(0, position))
+    val filter1 = code.substring(0, position).split(";|\n", -1)
     var filterSnippet = ""
-    if(filter1.nonEmpty) {
+    if (filter1.nonEmpty) {
       val filter2 = filter1.last.split("[^a-zA-Z0-9_]+", -1)
-      if(filter2.nonEmpty) {
+      if (filter2.nonEmpty) {
         filterSnippet = filter2.last
       }
     }
     val source = compiler.newSourceFile(wrappedCode)
     reload(source)
     val pos = new OffsetPosition(source, position + positionOffset)
-    var matches = completion (pos, compiler.askTypeCompletion)
-    if(matches.isEmpty) {
-      matches = completion (pos, compiler.askScopeCompletion)
+    var matches = completion(pos, compiler.askTypeCompletion)
+    if (matches.isEmpty) {
+      matches = completion(pos, compiler.askScopeCompletion)
     }
     val returnMatches = matches
       .filter(m => m.symbol.startsWith(filterSnippet))
       // autocomplete all matching method versions (name, params, returnType)
-      .map { m => Match(m.nameAndParams, Map("display_text" -> m.nameParamsAndReturnType))}
+      .map { m => Match(m.nameAndParams, Map("display_text" -> m.nameParamsAndReturnType)) }
       .distinct
-    (filterSnippet,returnMatches)
+    (filterSnippet, returnMatches)
   }
 
   def stop(): Unit = {

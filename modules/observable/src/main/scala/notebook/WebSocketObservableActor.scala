@@ -5,8 +5,7 @@ import play.api.libs.iteratee._
 import play.api.libs.json._
 
 object WebSocketObservableActor {
-  def props(out: Concurrent.Channel[JsValue], contextId: String)(implicit
-    system: ActorSystem): ActorRef = system.actorOf(Props(new WebSocketObservableActor(out, contextId)))
+  def props(out: Concurrent.Channel[JsValue], contextId: String)(implicit system: ActorSystem): ActorRef = system.actorOf(Props(new WebSocketObservableActor(out, contextId)))
 }
 
 class WebSocketObservableActor(channel: Concurrent.Channel[JsValue], val contextId: String)(implicit system: ActorSystem) extends Actor {
@@ -21,10 +20,10 @@ class WebSocketObservableActor(channel: Concurrent.Channel[JsValue], val context
   }
 
   def receive = {
-    case m@("add", channel: Concurrent.Channel[_ /*JsValue*/]) =>
+    case m @ ("add", channel: Concurrent.Channel[_ /*JsValue*/ ]) =>
       service foreach (_.obsActor ! m)
 
-    case m@("remove", channel: Concurrent.Channel[_ /*JsValue*/]) =>
+    case m @ ("remove", channel: Concurrent.Channel[_ /*JsValue*/ ]) =>
       service foreach (_.obsActor ! m)
 
     case msg: JsValue =>

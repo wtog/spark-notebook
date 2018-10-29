@@ -57,13 +57,14 @@ object JSBus {
 
   val log = LoggerFactory.getLogger(getClass)
 
-  private[notebook] def forwardClientUpdateMessage(obsId: String,
+  private[notebook] def forwardClientUpdateMessage(
+    obsId: String,
     newValue: JsValue) = idToSubject.get(obsId).map(_.onJsReceived(newValue))
 
   // TODO: How do these things get disposed? Need a notice from Javascript to Scala when an id is disposed, then we dispose all subscriptions (onComplete?)
   private val idToSubject: scala.collection.concurrent.Map[String, ValueConnection] = new scala.collection.concurrent.TrieMap[String, ValueConnection]()
 
-  class ValueConnection(val id:String = newID) extends Connection[JsValue] {
+  class ValueConnection(val id: String = newID) extends Connection[JsValue] {
     val observer = new ConcreteObserver[JsValue] {
       // Called by extenral parties
       override def onNext(arg: JsValue) {
@@ -87,15 +88,14 @@ object JSBus {
 
     var current: JsValue = null
 
-
     def onJsReceived(v: JsValue) {
       //println(">>><<< : " + v)
       subject.onNext(v)
     }
   }
 
-  def createConnection:ValueConnection = createConnection(newID)
-  def createConnection(id:String):ValueConnection = {
+  def createConnection: ValueConnection = createConnection(newID)
+  def createConnection(id: String): ValueConnection = {
     val cxn = new ValueConnection(id)
     idToSubject += cxn.id -> cxn
     cxn

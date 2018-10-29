@@ -1,10 +1,10 @@
 package notebook.server
 
-import java.io.{File, FileWriter}
+import java.io.{ File, FileWriter }
 
 import akka.actor._
 import play.api.libs.json._
-import play.api.{Configuration, Logger}
+import play.api.{ Configuration, Logger }
 
 class NotebookClusters(store: File, initProfiles: Map[String, JsObject],
   initClusters: Map[String, JsObject]) extends Actor with ActorLogging {
@@ -84,15 +84,15 @@ object NotebookClusters {
       val map = j match {
         case JsArray(xs) =>
           val v = xs.map(x => ((x \ "name").as[String], x)).toMap
-          val m = v.collect { case x@(_, o: JsObject) => x }.toMap.asInstanceOf[Map[String, JsObject]]
+          val m = v.collect { case x @ (_, o: JsObject) => x }.toMap.asInstanceOf[Map[String, JsObject]]
           if (m.size != v.size) {
             Logger.warn("Some items have been discarded from clusters → no Json Objects!")
           }
           m
 
-        case o@JsObject(xs) =>
+        case o @ JsObject(xs) =>
           val v = o.value
-          val m = v.collect { case x@(_, o: JsObject) => x }.toMap.asInstanceOf[Map[String, JsObject]]
+          val m = v.collect { case x @ (_, o: JsObject) => x }.toMap.asInstanceOf[Map[String, JsObject]]
           if (m.size != v.size) {
             Logger.warn("Some items have been discarded from clusters → no Json Objects!")
           }

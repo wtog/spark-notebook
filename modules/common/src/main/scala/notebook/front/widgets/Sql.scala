@@ -2,7 +2,7 @@ package notebook.front.widgets
 
 import play.api.Logger
 import play.api.libs.json._
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.{ DataFrame, SQLContext }
 import notebook._
 import notebook.front._
 import notebook.JsonCodec._
@@ -41,19 +41,18 @@ class Sql(sqlContext: SQLContext, call: String) extends Widget with Utils {
     (r, Try(inputs.last.after.toString).toOption.getOrElse(""))
   }
 
-  import rx.lang.scala.{Observable => RxObservable, Observer => RxObserver, _}
+  import rx.lang.scala.{ Observable => RxObservable, Observer => RxObserver, _ }
 
   val mergedObservables: RxObservable[(String, Any)] = {
     val l: List[RxObservable[(String, Any)]] = parts.map { p =>
       val ob = p._2.widget.currentData.observable.inner //.doOnEach(x => Logger.debug("########:"+x.toString))
-    val o: RxObservable[(String, Any)] = ob.map((d: Any) => (p._2.name, d))
+      val o: RxObservable[(String, Any)] = ob.map((d: Any) => (p._2.name, d))
       o.doOnError { t =>
         Logger.warn(s"$p._1 is errored with ${t.getMessage}")
         //t.printStackTrace()
       }
       o.doOnCompleted(
-        Logger.warn(s"$p._1 is completed")
-      )
+        Logger.warn(s"$p._1 is completed"))
       o
     }
     RxObservable.from(l).flatten
@@ -72,8 +71,9 @@ class Sql(sqlContext: SQLContext, call: String) extends Widget with Utils {
     }
 
     lazy val toHtml = <p data-bind="text: value">
-      {scopedScript(
-        """ req(
+                        {
+                          scopedScript(
+                            """ req(
               ['observable', 'knockout'],
               function (O, ko) {
                 ko.applyBindings({
@@ -84,9 +84,9 @@ class Sql(sqlContext: SQLContext, call: String) extends Widget with Utils {
               }
             );
         """,
-        Json.obj("valueId" -> dataConnection.id)
-      )}
-    </p>
+                            Json.obj("valueId" -> dataConnection.id))
+                        }
+                      </p>
   }
 
   val subject: Subject[Option[Try[DataFrame]]] = subjects.ReplaySubject(1)
@@ -113,14 +113,14 @@ class Sql(sqlContext: SQLContext, call: String) extends Widget with Utils {
   def react[A](f: DataFrame => A, w: SingleConnectedWidget[A]) = {
     result.subscribe(x => w(x.asInstanceOf[A])) //argl → asInstanceOf
     val sub = (o: Option[Try[DataFrame]]) => {
-        o match {
-          case Some(Success(s)) =>
-            val r = f(s)
-            result.onNext(r)
-          case x =>
-            Logger.error("ARRrrggllll → " + x.toString)
-        }
+      o match {
+        case Some(Success(s)) =>
+          val r = f(s)
+          result.onNext(r)
+        case x =>
+          Logger.error("ARRrrggllll → " + x.toString)
       }
+    }
     subject.subscribe(sub)
     //subject.orElse(None).subscribe(sub)
     w
@@ -131,9 +131,10 @@ class Sql(sqlContext: SQLContext, call: String) extends Widget with Utils {
 
     override def onNext(value: (String, Any)): Unit = {
       values += value
-      val s = parts.map { case (before, input) =>
-        val vv = values(input.name)
-        before + vv.toString
+      val s = parts.map {
+        case (before, input) =>
+          val vv = values(input.name)
+          before + vv.toString
       }.mkString("")
       val c = s + after
       updateValue(c)
@@ -192,7 +193,7 @@ case class DateInput(name: String) extends TypedInput[java.util.Date] {
 }
 
 case class IntInput(name: String) extends TypedInput[Int] {
-  implicit val codec: Codec[JsValue, Int] = JsonCodec.formatToCodec(None){
+  implicit val codec: Codec[JsValue, Int] = JsonCodec.formatToCodec(None) {
     val r = Reads.of[Int] orElse Reads.of[String].map(_.toInt)
     val w = Writes.of[Int].transform { x =>
       val JsNumber(n) = x

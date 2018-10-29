@@ -1,14 +1,14 @@
 package notebook.front.widgets
 
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ Future, ExecutionContext }
 import scala.reflect.runtime.universe.TypeTag
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{ DataFrame, Dataset, Row, SparkSession }
 import play.api.libs.json._
 
 import notebook._
-import notebook.front.{DataConnector, SingleConnector,Widget}
+import notebook.front.{ DataConnector, SingleConnector, Widget }
 
 /**
  * An abstract view of a dataframe.
@@ -18,7 +18,7 @@ import notebook.front.{DataConnector, SingleConnector,Widget}
  */
 trait DatasetView[T] {
   def data: Dataset[T]
-  def pageSize:Int
+  def pageSize: Int
 
   /* paging support */
   val partitionIndexConnector = new SingleConnector[Int]() {
@@ -44,15 +44,15 @@ trait DatasetView[T] {
     val scope = new java.io.Serializable {
       val pi = partitionIndex
       val ps = pageSize
-      val skipper = (ki:(String, Long)) => ki._2 >= (pi*ps)
-      val _1 = (ki:(String, Long)) => ki._1
+      val skipper = (ki: (String, Long)) => ki._2 >= (pi * ps)
+      val _1 = (ki: (String, Long)) => ki._1
       //import ExecutionContext.Implicits.global
       val job = Future.successful {
         json.filter(skipper)
-            .take(ps)
-            .map(_1)
-            .map(Json.parse)
-            .toSeq
+          .take(ps)
+          .map(_1)
+          .map(Json.parse)
+          .toSeq
       }
     }
     // connect to the job results (which are emitted asynchronously)
@@ -63,8 +63,7 @@ trait DatasetView[T] {
 class DatasetWidget[T](
   override val data: Dataset[T],
   override val pageSize: Int = 25,
-  extension: String
-) extends Widget
+  extension: String) extends Widget
   with DatasetView[T]
   with Utils {
 
@@ -82,16 +81,16 @@ class DatasetWidget[T](
 
   lazy val toHtml =
     <div class="df-canvas">
-      {scopedScript(
-      s"req($js, $call);",
-      Json.obj(
-        "dataId" -> dataConnector.dataConnection.id,
-        "partitionIndexId" -> partitionIndexConnector.dataConnection.id,
-        "numPartitions" -> pages,
-        "dfSchema" -> Json.parse(data.schema.json)
-      )
-      )}
-      <link rel="stylesheet" href="/assets/stylesheets/ipython/css/dataframe.css" type="text/css" />
+      {
+        scopedScript(
+          s"req($js, $call);",
+          Json.obj(
+            "dataId" -> dataConnector.dataConnection.id,
+            "partitionIndexId" -> partitionIndexConnector.dataConnection.id,
+            "numPartitions" -> pages,
+            "dfSchema" -> Json.parse(data.schema.json)))
+      }
+      <link rel="stylesheet" href="/assets/stylesheets/ipython/css/dataframe.css" type="text/css"/>
     </div>
 }
 
@@ -99,31 +98,26 @@ object DatasetWidget {
 
   def table[T](
     data: Dataset[T],
-    pageSize: Int
-  ): DatasetWidget[T] = {
+    pageSize: Int): DatasetWidget[T] = {
     new DatasetWidget(data, pageSize, "consoleDir")
   }
 
-  def table[A <: Product : TypeTag](
+  def table[A <: Product: TypeTag](
     rdd: RDD[A],
-    pageSize: Int
-  ): DatasetWidget[A] = {
+    pageSize: Int): DatasetWidget[A] = {
     val ss = SparkSession.builder().getOrCreate()
     import ss.implicits._
     table(rdd.toDS(), pageSize)
   }
 }
 
-
 object DataFrameWidget {
 
   def table(
     data: DataFrame,
-    pageSize: Int
-  ): DatasetWidget[Row] = DatasetWidget.table(data, pageSize)
+    pageSize: Int): DatasetWidget[Row] = DatasetWidget.table(data, pageSize)
 
-  def table[A <: Product : TypeTag](
+  def table[A <: Product: TypeTag](
     rdd: RDD[A],
-    pageSize: Int
-  ): DatasetWidget[A] = DatasetWidget.table(rdd, pageSize)
+    pageSize: Int): DatasetWidget[A] = DatasetWidget.table(rdd, pageSize)
 }

@@ -6,11 +6,11 @@ import notebook.io.ConfigUtils._
 import scala.util.Try
 
 /**
-  * Credentials for basic authentication
-  *
-  * @param username
-  * @param password
-  */
+ * Credentials for basic authentication
+ *
+ * @param username
+ * @param password
+ */
 case class Credentials(username: String, password: String)
 object Credentials {
   val Username = "username"
@@ -20,8 +20,7 @@ object Credentials {
     def render(obj: Credentials, prefix: String) = {
       val entries = List(
         StringConfig(Credentials.Username, obj.username),
-        StringConfig(Credentials.Password, obj.password)
-      )
+        StringConfig(Credentials.Password, obj.password))
       Renderable.render(entries, prefix)
     }
   }

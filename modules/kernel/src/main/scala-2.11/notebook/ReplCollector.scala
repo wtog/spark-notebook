@@ -1,6 +1,6 @@
 package notebook
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{ Actor, ActorRef, Props }
 import com.datafellas.utils._
 import notebook.client._
 import notebook.repl.command_interpreters.combineIntepreters
@@ -11,20 +11,18 @@ import org.sonatype.aether.repository.RemoteRepository
 import scala.collection.immutable.Queue
 import scala.concurrent.Future
 
-
 /**
  * @param initScripts List of scala source strings to be executed during REPL startup.
  * @param customSparkConf Map configuring the notebook (spark configuration).
  * @param compilerArgs Command line arguments to pass to the REPL compiler
  */
 class ReplCollector(
-  notebookName:String,
-  customImports:Option[List[String]],
-  customArgs:Option[List[String]],
-  remoteActor:ActorRef,
+  notebookName: String,
+  customImports: Option[List[String]],
+  customArgs: Option[List[String]],
+  remoteActor: ActorRef,
   initScripts: List[(String, String)],
-  compilerArgs: List[String]
-) extends Actor with akka.actor.ActorLogging {
+  compilerArgs: List[String]) extends Actor with akka.actor.ActorLogging {
 
   private val remoteLogger = context.actorSelection("/user/remote-logger")
   remoteLogger ! remoteActor
@@ -42,18 +40,18 @@ class ReplCollector(
     private var queue: Queue[(ActorRef, ExecuteRequest)] = Queue.empty
     private var currentlyExecutingTask: Option[Future[(String, EvaluationResult)]] = None
 
-    def eval(b: => String, notify:Boolean=true)(success: => String = "", failure: String=>String=(s:String)=>"Error evaluating " + b + ": "+ s) {
+    def eval(b: => String, notify: Boolean = true)(success: => String = "", failure: String => String = (s: String) => "Error evaluating " + b + ": " + s) {
       repl.evaluate(b)._1 match {
         case Failure(str) =>
           if (notify) {
             eval(s"""
-            """,notify = false)()
+            """, notify = false)()
           }
           log.error(failure(str))
         case _ =>
           if (notify) {
             eval(s"""
-            """,notify = false)()
+            """, notify = false)()
           }
           log.info(success)
       }
@@ -83,8 +81,9 @@ class ReplCollector(
 
       case InterruptCellRequest(killCellId) =>
         // kill job(s) still waiting for execution to start, if any
-        val (jobsInQueueToKill, nonAffectedJobs) = queue.partition { case (_, ExecuteRequest(cellIdInQueue, _, _)) =>
-          cellIdInQueue == killCellId
+        val (jobsInQueueToKill, nonAffectedJobs) = queue.partition {
+          case (_, ExecuteRequest(cellIdInQueue, _, _)) =>
+            cellIdInQueue == killCellId
         }
         log.debug(s"Canceling $killCellId jobs still in queue (if any):\n $jobsInQueueToKill")
         queue = nonAffectedJobs
@@ -96,8 +95,7 @@ class ReplCollector(
           val thisSender = sender()
           repl.evaluate(
             s"""globalScope.sparkContext.cancelJobGroup("${jobGroupId}")""",
-            msg => thisSender ! StreamResponse(msg, "stdout")
-          )
+            msg => thisSender ! StreamResponse(msg, "stdout"))
         }
         // StreamResponse shows error msg
         sender() ! StreamResponse(s"The cell was cancelled.\n", "stderr")
@@ -113,8 +111,7 @@ class ReplCollector(
           "globalScope.sparkContext.cancelAllJobs()",
           msg => {
             thisSender ! StreamResponse(msg, "stdout")
-          }
-        )
+          })
     }
 
     private var commandInterpreters = combineIntepreters(command_interpreters.defaultInterpreters)
@@ -128,18 +125,18 @@ class ReplCollector(
       val thisSender = sender
       val result = scala.concurrent.Future {
         val cellId = er.cellId
-        def replEvaluate(code:String, cellId:String) = {
+        def replEvaluate(code: String, cellId: String) = {
           val cellResult = try {
-           repl.evaluate(s"""
+            repl.evaluate(
+              s"""
               |$code
               """.stripMargin,
               msg => thisSender ! StreamResponse(msg, "stdout"),
-              nameDefinition => thisSender ! nameDefinition
-            )
+              nameDefinition => thisSender ! nameDefinition)
           }
-//          finally {
-//             repl.evaluate("globalScope.sparkContext.clearJobGroup()")
-//          }
+          //          finally {
+          //             repl.evaluate("globalScope.sparkContext.clearJobGroup()")
+          //          }
           cellResult
         }
         val result = replEvaluate(generatedReplCode.replCommand, cellId)

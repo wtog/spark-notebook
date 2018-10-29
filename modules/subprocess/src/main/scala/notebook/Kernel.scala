@@ -2,7 +2,7 @@ package notebook
 
 import java.util.concurrent.ConcurrentHashMap
 
-import akka.actor.{Deploy, _}
+import akka.actor.{ Deploy, _ }
 import com.typesafe.config.Config
 import notebook.kernel.remote.RemoteActorSystem
 
@@ -20,18 +20,17 @@ class Kernel(
   config: Config,
   system: ActorSystem,
   kernelId: String,
-  isVersioningSupported:Boolean,
+  isVersioningSupported: Boolean,
   notebookPath_ : Option[String] = None,
-  customArgs:Option[List[String]],
+  customArgs: Option[List[String]],
   impersonatedUser: Option[String] = None,
   authUser: Option[String] = None,
-  kernelType: Option[String] = None
-) {
+  kernelType: Option[String] = None) {
   private[this] var _notebookPath = notebookPath_
 
   def notebookPath = _notebookPath
 
-  def moveNotebook(to:String) {
+  def moveNotebook(to: String) {
     _notebookPath = Some(to)
   }
 

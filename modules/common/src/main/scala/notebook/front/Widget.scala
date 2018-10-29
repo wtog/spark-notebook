@@ -4,7 +4,7 @@ import java.util.UUID
 
 import notebook.util.ClassUtils
 
-import scala.xml.{Node, NodeSeq}
+import scala.xml.{ Node, NodeSeq }
 
 trait Widget extends Iterable[Node] {
   def toHtml: NodeSeq
@@ -27,8 +27,7 @@ object Widget {
 
   def fromHtml(html: NodeSeq): Widget = new SimpleWidget(html)
 
-  implicit def fromRenderer[A](value: A)
-      (implicit renderer: Renderer[A]): Widget = fromHtml(renderer.render(value))
+  implicit def fromRenderer[A](value: A)(implicit renderer: Renderer[A]): Widget = fromHtml(renderer.render(value))
 
   object Empty extends Widget {
     def toHtml = NodeSeq.Empty

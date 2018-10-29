@@ -31,8 +31,7 @@ object NBSerializer extends Logging {
     output_type: String,
     prompt_number: Int,
     html: Option[String],
-    text: Option[String]
-  ) extends Output
+    text: Option[String]) extends Output
 
   implicit val scalaOutputFormat = Json.format[ScalaOutput]
 
@@ -46,8 +45,7 @@ object NBSerializer extends Logging {
     data_list: Option[Map[String, List[String]]],
     output_type: String,
     execution_count: Int,
-    time: Option[String]
-  ) extends Output
+    time: Option[String]) extends Output
 
   implicit val scalaExecuteResultFormat = Json.format[ScalaExecuteResult]
 
@@ -55,16 +53,14 @@ object NBSerializer extends Logging {
     name: String,
     output_type: String,
     prompt_number: Int,
-    traceback: String
-  ) extends Output
+    traceback: String) extends Output
 
   implicit val pyErrorFormat = Json.format[PyError]
 
   case class ScalaError(
     ename: String,
     output_type: String,
-    traceback: List[String]
-  ) extends Output
+    traceback: List[String]) extends Output
   implicit val scalaErrorFormat = Json.format[ScalaError]
 
   case class ScalaStream(name: String, output_type: String, text: String) extends Output
@@ -76,7 +72,7 @@ object NBSerializer extends Logging {
     tpe match {
       case "execute_result" => scalaExecuteResultFormat.reads(js)
       case "stout" => scalaOutputFormat.reads(js)
-      case "pyerr"  => pyErrorFormat.reads(js)
+      case "pyerr" => pyErrorFormat.reads(js)
       case "error" => scalaErrorFormat.reads(js)
       case "stream" => scalaStreamFormat.reads(js)
       case x =>
@@ -101,9 +97,8 @@ object NBSerializer extends Logging {
     output_stream_collapsed: Option[Boolean],
     collapsed: Option[Boolean],
     presentation: Option[JsObject],
-    id: Option[String]=None,
-    extra:Option[JsObject] = None
-  )
+    id: Option[String] = None,
+    extra: Option[JsObject] = None)
 
   implicit val codeCellMetadataFormat = Json.format[CellMetadata]
 
@@ -119,11 +114,9 @@ object NBSerializer extends Logging {
     source: List[String],
     language: Option[String],
     prompt_number: Option[Int] = None,
-    outputs: Option[List[Output]] = None
-  ) extends Cell {
+    outputs: Option[List[Output]] = None) extends Cell {
     def sourceString: String = this.source.mkString("")
   }
-
 
   // read source as a string "line1\nline2" or a ["line1\n", "line2"]
   val readSourceFromList = (JsPath \ "source").read[List[String]]
@@ -135,12 +128,11 @@ object NBSerializer extends Logging {
 
   val codeCellReadsFromJson: Reads[CodeCell] = (
     (JsPath \ "metadata").read[CellMetadata] and
-      (JsPath \ "cell_type").readNullable[String].map(_.getOrElse("code")) and
-      sourceFieldReader and
-      (JsPath \ "language").readNullable[String] and
-      (JsPath \ "prompt_number").readNullable[Int] and
-      (JsPath \ "outputs").readNullable[List[Output]]
-    )(CodeCell.apply _)
+    (JsPath \ "cell_type").readNullable[String].map(_.getOrElse("code")) and
+    sourceFieldReader and
+    (JsPath \ "language").readNullable[String] and
+    (JsPath \ "prompt_number").readNullable[Int] and
+    (JsPath \ "outputs").readNullable[List[Output]])(CodeCell.apply _)
 
   private def codeCellWritesMultiline = Json.writes[CodeCell]
   private def codeCellWritesSingleLine = OWrites { (c: CodeCell) =>
@@ -150,8 +142,7 @@ object NBSerializer extends Logging {
       "source" → c.sourceString,
       "language" → c.language,
       "prompt_number" → c.prompt_number,
-      "outputs" → c.outputs
-    )
+      "outputs" → c.outputs)
   }
   implicit val codeCellWrites: Writes[CodeCell] = if (USE_BACKWARDS_COMPATIBLE_FORMAT) codeCellWritesSingleLine else codeCellWritesMultiline
   implicit val codeCellFormat = Format(codeCellReadsFromJson, codeCellWrites)
@@ -159,8 +150,7 @@ object NBSerializer extends Logging {
   case class MarkdownCell(
     metadata: CellMetadata,
     cell_type: String = "markdown",
-    source: String
-  ) extends Cell
+    source: String) extends Cell
 
   implicit val markdownCellFormat = Json.format[MarkdownCell]
 
@@ -172,8 +162,7 @@ object NBSerializer extends Logging {
     metadata: CellMetadata,
     cell_type: String = "heading",
     source: String,
-    level: Int
-  ) extends Cell
+    level: Int) extends Cell
 
   implicit val headingCellFormat = Json.format[HeadingCell]
 
@@ -196,26 +185,24 @@ object NBSerializer extends Logging {
     customImports: Option[List[String]] = None,
     customArgs: Option[List[String]] = None,
     customSparkConf: Option[JsObject] = None,
-    customVars: Option[Map[String, String]] = None
-  )
+    customVars: Option[Map[String, String]] = None)
 
   implicit val metadataFormat: Format[Metadata] = {
     val r: Reads[Metadata] = (
       (JsPath \ "id").readNullable[String].map(_.getOrElse(Notebook.getNewUUID)) and
-        (JsPath \ "name").read[String] and
-        (JsPath \ "user_save_timestamp").read[String].map(parseDateTime) and
-        (JsPath \ "auto_save_timestamp").read[String].map(parseDateTime) and
-        (JsPath \ "language_info").readNullable[LanguageInfo].map(_.getOrElse(scala)) and
-        (JsPath \ "trusted").readNullable[Boolean].map(_.getOrElse(true)) and
-        (JsPath \ "sparkNotebook").readNullable[Map[String, String]] and
-        (JsPath \ "customLocalRepo").readNullable[String] and
-        (JsPath \ "customRepos").readNullable[List[String]] and
-        (JsPath \ "customDeps").readNullable[List[String]] and
-        (JsPath \ "customImports").readNullable[List[String]] and
-        (JsPath \ "customArgs").readNullable[List[String]] and
-        (JsPath \ "customSparkConf").readNullable[JsObject] and
-        (JsPath \ "customVars").readNullable[Map[String,String]]
-      )(Metadata.apply _)
+      (JsPath \ "name").read[String] and
+      (JsPath \ "user_save_timestamp").read[String].map(parseDateTime) and
+      (JsPath \ "auto_save_timestamp").read[String].map(parseDateTime) and
+      (JsPath \ "language_info").readNullable[LanguageInfo].map(_.getOrElse(scala)) and
+      (JsPath \ "trusted").readNullable[Boolean].map(_.getOrElse(true)) and
+      (JsPath \ "sparkNotebook").readNullable[Map[String, String]] and
+      (JsPath \ "customLocalRepo").readNullable[String] and
+      (JsPath \ "customRepos").readNullable[List[String]] and
+      (JsPath \ "customDeps").readNullable[List[String]] and
+      (JsPath \ "customImports").readNullable[List[String]] and
+      (JsPath \ "customArgs").readNullable[List[String]] and
+      (JsPath \ "customSparkConf").readNullable[JsObject] and
+      (JsPath \ "customVars").readNullable[Map[String, String]])(Metadata.apply _)
 
     val w: Writes[Metadata] =
       OWrites { (m: Metadata) =>
@@ -231,15 +218,14 @@ object NBSerializer extends Logging {
           "auto_save_timestamp" → auto_save_timestamp,
           "language_info" → language_info,
           "trusted" → trusted,
-          "sparkNotebook"→ m.sparkNotebook,
+          "sparkNotebook" → m.sparkNotebook,
           "customLocalRepo" → m.customLocalRepo,
           "customRepos" → m.customRepos,
           "customDeps" → m.customDeps,
           "customImports" → m.customImports,
           "customArgs" → m.customArgs,
           "customSparkConf" → m.customSparkConf,
-          "customVars" -> m.customVars
-        )
+          "customVars" -> m.customVars)
       }
 
     Format(r, w)

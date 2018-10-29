@@ -1,14 +1,14 @@
 package notebook.server
 
-import java.io.{File, InputStream}
+import java.io.{ File, InputStream }
 import java.net.URL
 
 import notebook.Notebook
-import notebook.io.{NotebookProvider, NotebookProviderFactory}
+import notebook.io.{ NotebookProvider, NotebookProviderFactory }
 import notebook.util.StringUtils
 import org.apache.commons.io.FileUtils
 import play.api.libs.json._
-import play.api.{Logger, _}
+import play.api.{ Logger, _ }
 import utils.ConfigurationUtils._
 
 import scala.collection.JavaConverters._
@@ -25,7 +25,7 @@ case class NotebookConfig(config: Configuration) {
     Logger.debug(s"Notebooks directory in the config is referring $confDir. Does it exist? ${new File(confDir).exists}")
   }
 
-  val viewer:Boolean = config.getBoolean("viewer_mode").getOrElse(false)
+  val viewer: Boolean = config.getBoolean("viewer_mode").getOrElse(false)
 
   val customConf = CustomConf.fromConfig(config.getConfig("notebooks.custom"))
 
@@ -41,8 +41,8 @@ case class NotebookConfig(config: Configuration) {
   }
   val notebookIoProviderClass = config.tryGetString("notebooks.io.provider").get
   val notebookIoProvider: NotebookProvider = {
-      val configuration = config.tryGetConfig(notebookIoProviderClass).get
-      NotebookProviderFactory.createNotebookIoProvider(notebookIoProviderClass, configuration.underlying, ioProviderTimeout)
+    val configuration = config.tryGetConfig(notebookIoProviderClass).get
+    NotebookProviderFactory.createNotebookIoProvider(notebookIoProviderClass, configuration.underlying, ioProviderTimeout)
   }
 
   val notebooksDir = notebookIoProvider.root.toFile
@@ -55,10 +55,10 @@ case class NotebookConfig(config: Configuration) {
   object kernel {
     val config = me.config.getConfig("kernel").getOrElse(Configuration.empty)
     val defauldInitScript = config.getString("default.init")
-                                  .orElse(Some("init.sc"))
-                                  .flatMap { init =>
-                                    current.resource("scripts/" + init).map(i => ScriptFromURL(i).toSource)
-                                  }
+      .orElse(Some("init.sc"))
+      .flatMap { init =>
+        current.resource("scripts/" + init).map(i => ScriptFromURL(i).toSource)
+      }
     val kernelInit = {
       val scripts = config.getStringList("init").map(_.asScala).getOrElse(Nil).map(
         url => ScriptFromURL(new URL(url)))
@@ -72,16 +72,15 @@ case class NotebookConfig(config: Configuration) {
 
 case class CustomConf(
   localRepo: Option[String],
-  repos:     Option[List[String]],
-  deps:      Option[List[String]],
-  imports:   Option[List[String]],
-  args:      Option[List[String]],
-  sparkConf: Option[JsObject]
-) {
-  val sparkConfMap:Option[Map[String, String]] = sparkConf flatMap CustomConf.fromSparkConfJsonToMap
+  repos: Option[List[String]],
+  deps: Option[List[String]],
+  imports: Option[List[String]],
+  args: Option[List[String]],
+  sparkConf: Option[JsObject]) {
+  val sparkConfMap: Option[Map[String, String]] = sparkConf flatMap CustomConf.fromSparkConfJsonToMap
 }
 object CustomConf {
-  def fromConfig(custom:Option[Configuration]) = {
+  def fromConfig(custom: Option[Configuration]) = {
     val localRepo = custom.flatMap(_.getString("localRepo"))
     val repos = custom.flatMap(_.getStringList("repos")).map(_.asScala.toList)
     val deps = custom.flatMap(_.getStringList("deps")).map(_.asScala.toList)
@@ -94,16 +93,16 @@ object CustomConf {
   }
 
   private val readJsValueMap = Reads.map[JsValue]
-  def fromSparkConfJsonToMap(conf:JsObject):Option[Map[String, String]] =
+  def fromSparkConfJsonToMap(conf: JsObject): Option[Map[String, String]] =
     for {
       map <- readJsValueMap.reads(conf).asOpt
     } yield map.map {
-      case (k, a@JsArray(v))   => k → a.toString
-      case (k, JsBoolean(v))   => k → v.toString
-      case (k, JsNull)         => k → "null"
-      case (k, JsNumber(v))    => k → v.toString
-      case (k, o@JsObject(v))  => k → o.toString
-      case (k, JsString(v))    => k → v
+      case (k, a @ JsArray(v)) => k → a.toString
+      case (k, JsBoolean(v)) => k → v.toString
+      case (k, JsNull) => k → "null"
+      case (k, JsNumber(v)) => k → v.toString
+      case (k, o @ JsObject(v)) => k → o.toString
+      case (k, JsString(v)) => k → v
     }
 
 }

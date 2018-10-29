@@ -4,7 +4,7 @@ import java.io.File
 
 import com.typesafe.config.Config
 import scala.concurrent.duration._
-import play.api.{Logger, _}
+import play.api.{ Logger, _ }
 
 case class SbtProjectGenConfig(config: Configuration) { me =>
 

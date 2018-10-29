@@ -19,8 +19,7 @@ trait WebSockWrapper {
 
 class WebSockWrapperImpl(
   sock: Concurrent.Channel[JsValue],
-  val session: String
-) extends WebSockWrapper with Logging {
+  val session: String) extends WebSockWrapper with Logging {
 
   private def send(msg: JsValue) {
     logTrace("Sending " + msg)
@@ -28,8 +27,7 @@ class WebSockWrapperImpl(
   }
 
   val sessionTransformer = (__ \ 'session).json.update(
-    Reads.of[JsString].map { case JsString(s) => JsString(session) }
-  )
+    Reads.of[JsString].map { case JsString(s) => JsString(session) })
 
   def injectCurrentSession(header: JsValue): JsValue = {
     val newHeader = header.transform(sessionTransformer)
@@ -48,9 +46,7 @@ class WebSockWrapperImpl(
         "username" -> "kernel",
         "session" -> session,
         "msg_id" -> UUID.randomUUID().toString,
-        "msg_type" -> msgType
-      )
-    )
+        "msg_type" -> msgType))
 
     send(respJson)
   }

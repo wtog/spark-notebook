@@ -1,19 +1,18 @@
 package org.apache.spark.repl
 
 import scala.reflect._
-import scala.reflect.api.{Mirror, Universe, TypeCreator}
-import scala.tools.nsc.{io, Properties, Settings, interpreter}
+import scala.reflect.api.{ Mirror, Universe, TypeCreator }
+import scala.tools.nsc.{ io, Properties, Settings, interpreter }
 import scala.tools.nsc.interpreter._
 import scala.tools.nsc.util.ScalaClassLoader._
-import scala.reflect.api.{Mirror, TypeCreator, Universe => ApiUniverse}
+import scala.reflect.api.{ Mirror, TypeCreator, Universe => ApiUniverse }
 import scala.concurrent.{ ExecutionContext, Await, Future, future }
 import ExecutionContext.Implicits._
 import java.io.File
 
-
 import scala.tools.nsc.interpreter._
 
-class HackSparkILoop(out:JPrintWriter, val outputDir:File) extends org.apache.spark.repl.SparkILoop(None, out) {
+class HackSparkILoop(out: JPrintWriter, val outputDir: File) extends org.apache.spark.repl.SparkILoop(None, out) {
 
   // note:
   // the creation of SecurityManager has to be lazy so SPARK_YARN_MODE is set if needed
@@ -36,7 +35,7 @@ class HackSparkILoop(out:JPrintWriter, val outputDir:File) extends org.apache.sp
     createInterpreter()
 
     // sets in to some kind of reader depending on environmental cues
-    in = chooseReader(settings)// in0.fold(chooseReader(settings))(r => SimpleReader(r, out, interactive = true))
+    in = chooseReader(settings) // in0.fold(chooseReader(settings))(r => SimpleReader(r, out, interactive = true))
     val globalFuture = Future {
       intp.initializeSynchronous()
       import scala.tools.nsc.interpreter.IMain
@@ -51,10 +50,10 @@ class HackSparkILoop(out:JPrintWriter, val outputDir:File) extends org.apache.sp
     loadFiles(settings)
 
     /**
-    try loop()
-    catch AbstractOrMissingHandler()
-    finally closeInterpreter()
-    */
+     * try loop()
+     * catch AbstractOrMissingHandler()
+     * finally closeInterpreter()
+     */
 
     true
   }

@@ -1,7 +1,7 @@
 package notebook.front
 
 import scala.util.Random
-import scala.xml.{NodeSeq, UnprefixedAttribute, Null}
+import scala.xml.{ NodeSeq, UnprefixedAttribute, Null }
 import play.api.libs.json._
 import com.vividsolutions.jts.geom.Geometry
 import org.wololo.geojson.GeoJSON

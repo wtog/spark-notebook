@@ -1,10 +1,10 @@
 package notebook.server.websocket
 
-import akka.actor.{Terminated, _}
+import akka.actor.{ Terminated, _ }
 import notebook.client._
 import notebook.repl.NameDefinition
 import notebook.server._
-import notebook.{Kernel, ReplCalculator}
+import notebook.{ Kernel, ReplCalculator }
 import org.apache.logging.log4j.core.LogEvent
 import org.joda.time.LocalDateTime
 import play.api._
@@ -15,14 +15,14 @@ import scala.collection.immutable.Queue
 import scala.collection.mutable
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.language.{postfixOps, reflectiveCalls}
+import scala.language.{ postfixOps, reflectiveCalls }
 
 /**
  * Provides a web-socket interface to the Calculator
  */
 class CalcWebSocketService(
   system: ActorSystem,
-  notebookName:String,
+  notebookName: String,
   customLocalRepo: Option[String],
   customRepos: Option[List[String]],
   customDeps: Option[List[String]],
@@ -113,30 +113,27 @@ class CalcWebSocketService(
           kCustomSparkConf,
           self,
           kInitScripts,
-          kCompilerArgs
-        ).withDeploy(remoteDeploy)
+          kCompilerArgs).withDeploy(remoteDeploy)
       }
 
       context.watch(calculator)
     }
 
-
     def sendAllEarlierNameDefinitions(ws: WebSockWrapper): Unit = {
-      lastTermDefinitions.values.foreach { case (definition, cellId) =>
-        ws.send(
-          obj(
-            "session" → "ignored"
-          ),
-          ws.session,
-          "definition",
-          "iopub",
-          nameDefinitionJson(definition, cellId)
-        )
+      lastTermDefinitions.values.foreach {
+        case (definition, cellId) =>
+          ws.send(
+            obj(
+              "session" → "ignored"),
+            ws.session,
+            "definition",
+            "iopub",
+            nameDefinitionJson(definition, cellId))
       }
       Logger.debug(s"Sent defs to ($ws) in service ${this} (current are: ${lastTermDefinitions.keys})")
     }
 
-    def nameDefinitionJson(nameDefinition: NameDefinition, cellId: String): JsObject ={
+    def nameDefinitionJson(nameDefinition: NameDefinition, cellId: String): JsObject = {
       val NameDefinition(name, tpe, references) = nameDefinition
       val (te, ty): (JsValue, JsValue) = nameDefinition match {
         case d if !d.definesType => (JsString(name), JsNull)
@@ -147,8 +144,7 @@ class CalcWebSocketService(
         "type" → ty,
         "tpe" → tpe,
         "cell" → cellId,
-        "references" → references
-      )
+        "references" → references)
     }
 
     def receive = {
@@ -177,10 +173,11 @@ class CalcWebSocketService(
           //cancelling the spark jobs in the first cell
           calculator.tell(InterruptRequest, op.actor)
         }
-        if(currentSessionOperations.tail.nonEmpty) {
+        if (currentSessionOperations.tail.nonEmpty) {
           //cleaning the other cells
-          currentSessionOperations.tail.foreach { case SessionOperation(actor, _) =>
-            actor ! StreamResponse("Previous cell has been interrupted", "stdout")
+          currentSessionOperations.tail.foreach {
+            case SessionOperation(actor, _) =>
+              actor ! StreamResponse("Previous cell has been interrupted", "stdout")
           }
         }
         currentSessionOperations = Queue.empty
@@ -208,7 +205,6 @@ class CalcWebSocketService(
         currentSessionOperations = currentSessionOperations.enqueue(SessionOperation(operation, cellId))
         calculator.tell(request, operation)
 
-
       case Terminated(actor) =>
         Logger.debug("Termination of op calculator")
         if (actor == calculator) {
@@ -217,56 +213,51 @@ class CalcWebSocketService(
 
           ws.send(
             obj(
-              "session" → "ignored"
-            ),
+              "session" → "ignored"),
             JsNull,
             "status",
             "iopub",
-            obj("execution_state" → "dead")
-          )
+            obj("execution_state" → "dead"))
           self ! PoisonPill
         } else {
           // any cell can be interrupted, so remove the relevant operation only
           Logger.debug(s"Termination of op calculator: ${currentSessionOperations.filter(_.actor == actor)}")
           currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
         }
-//
-//      case event:org.apache.log4j.spi.LoggingEvent =>
-//        ws.send(
-//          obj(
-//            "session" → "ignored"
-//          ),
-//          JsNull,
-//          "log",
-//          "iopub",
-//          obj(
-//            "level"       → event.getLevel.toString,
-//            "time_stamp"  → event.getTimeStamp,
-//            "logger_name" → event.getLoggerName,
-//            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
-//            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
-//          )
-//        )
+      //
+      //      case event:org.apache.log4j.spi.LoggingEvent =>
+      //        ws.send(
+      //          obj(
+      //            "session" → "ignored"
+      //          ),
+      //          JsNull,
+      //          "log",
+      //          "iopub",
+      //          obj(
+      //            "level"       → event.getLevel.toString,
+      //            "time_stamp"  → event.getTimeStamp,
+      //            "logger_name" → event.getLoggerName,
+      //            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
+      //            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
+      //          )
+      //        )
       case event: LogEvent =>
         ws.send(
           obj(
-            "session" → "ignored"
-          ),
+            "session" → "ignored"),
           JsNull,
           "log",
           "iopub",
           obj(
-            "level"       → event.getLevel.toString,
-            "time_stamp"  → event.getTimeMillis,
+            "level" → event.getLevel.toString,
+            "time_stamp" → event.getTimeMillis,
             "logger_name" → event.getLoggerName,
-            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
-            "thrown"      → (if (event.getThrown == null) List.empty[String] else event.getThrown.getLocalizedMessage)
-          )
-        )
+            "message" → ("" + Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
+            "thrown" → (if (event.getThrown == null) List.empty[String] else event.getThrown.getLocalizedMessage)))
     }
 
     class SessionOperationActors(header: JsValue, session: JsValue) {
-      def singleExecution(cellId:String, counter: Int) = Props(new Actor {
+      def singleExecution(cellId: String, counter: Int) = Props(new Actor {
         def receive = {
           case StreamResponse(data, name) =>
             ws.send(header, session, "stream", "iopub", obj("cell_id" → cellId, "text" → data, "name" → name))
@@ -276,26 +267,23 @@ class CalcWebSocketService(
               "cell_id" → cellId,
               "execution_count" → counter,
               "data" → obj(outputType → content),
-              "time" → time
-            ))
+              "time" → time))
             ws.send(header, session, "status", "iopub", obj("cell_id" → cellId, "execution_state" → "idle"))
             ws.send(header, session, "execute_reply", "shell", obj("cell_id" → cellId, "execution_count" → counter))
             context.stop(self)
 
-          case nameDefinition@NameDefinition(name, tpe, references) =>
+          case nameDefinition @ NameDefinition(name, tpe, references) =>
             // store the name definitions so they're not lost on browser reload
             lastTermDefinitions.put(name, (nameDefinition, cellId))
             Logger.debug(s"Registered a name definition. Current definitions: ${lastTermDefinitions.keys})")
 
             ws.send(
               obj(
-                "session" → "ignored"
-              ),
+                "session" → "ignored"),
               JsNull,
               "definition",
               "iopub",
-              nameDefinitionJson(nameDefinition, cellId)
-            )
+              nameDefinitionJson(nameDefinition, cellId))
 
           case ErrorResponse(msg, incomplete) =>
             if (incomplete) {
@@ -303,8 +291,7 @@ class CalcWebSocketService(
                 "execution_count" → counter,
                 "status" → "error",
                 "ename" → "Error",
-                "traceback" → Seq(msg)
-              ))
+                "traceback" → Seq(msg)))
             } else {
               //already printed by the repl!
               //ws.send(header, session, "error", "iopub", Json.obj("execution_count" → counter,
@@ -335,8 +322,7 @@ class CalcWebSocketService(
               "found" → found,
               "name" → name,
               "call_def" → callDef,
-              "call_docstring" → "Description TBD"
-            ))
+              "call_docstring" → "Description TBD"))
             context.stop(self)
         }
       })

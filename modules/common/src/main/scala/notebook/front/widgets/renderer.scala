@@ -1,7 +1,7 @@
 package notebook.front
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{SQLContext, DataFrame, Dataset}
+import org.apache.spark.sql.{ SQLContext, DataFrame, Dataset }
 
 import scala.reflect.runtime.universe.TypeTag
 

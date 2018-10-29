@@ -1,10 +1,10 @@
 package com.fasterxml.jackson.core.util
 
-import java.io.{IOException, Writer}
+import java.io.{ IOException, Writer }
 
 import com.fasterxml.jackson.core.io.IOContext
-import com.fasterxml.jackson.core.{JsonFactory, JsonGenerator}
-import com.fasterxml.jackson.databind.{ObjectMapper, ObjectWriter}
+import com.fasterxml.jackson.core.{ JsonFactory, JsonGenerator }
+import com.fasterxml.jackson.databind.{ ObjectMapper, ObjectWriter }
 import play.api.libs.json.JsObject
 import play.api.libs.json.jackson.PlayJsonModule
 

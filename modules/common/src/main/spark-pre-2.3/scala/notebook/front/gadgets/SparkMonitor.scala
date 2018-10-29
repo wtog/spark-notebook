@@ -14,13 +14,14 @@ import play.api.libs.json._
 
 import notebook.util.Logging
 
-case class JobInfo(jobId: Int,
-                   completedTasks: Int,
-                   totalTasks: Int,
-                   submissionTime: Option[Long],
-                   completionTime: Option[Long])
+case class JobInfo(
+  jobId: Int,
+  completedTasks: Int,
+  totalTasks: Int,
+  submissionTime: Option[Long],
+  completionTime: Option[Long])
 
-class SparkMonitor(sparkContext:SparkContext, checkInterval:Long = 1000) extends Logging {
+class SparkMonitor(sparkContext: SparkContext, checkInterval: Long = 1000) extends Logging {
 
   val connection = notebook.JSBus.createConnection("jobsProgress")
 
@@ -29,8 +30,8 @@ class SparkMonitor(sparkContext:SparkContext, checkInterval:Long = 1000) extends
   sparkContext.listenerBus.addListener(listener)
 
   /**
-    * Identify link to Spark UI. Supports `yarn-*` modes so far.
-    */
+   * Identify link to Spark UI. Supports `yarn-*` modes so far.
+   */
   def sparkUiLink: Option[String] = sparkContext.master match {
     case m if m.startsWith("yarn") =>
       sys.env.get("YARN_JOB_PROXY_URL")
@@ -40,7 +41,7 @@ class SparkMonitor(sparkContext:SparkContext, checkInterval:Long = 1000) extends
         val u = sparkContext.getClass.getMethod("ui")
         u.setAccessible(true)
         val ui = u.invoke(sparkContext).asInstanceOf[Option[Any]]
-        val appUIAddress:Option[String] = ui.map{ u =>
+        val appUIAddress: Option[String] = ui.map { u =>
           val a = u.getClass.getMethod("appUIAddress")
           a.setAccessible(true)
           val appUIAddress = a.invoke(u)
@@ -90,23 +91,22 @@ class SparkMonitor(sparkContext:SparkContext, checkInterval:Long = 1000) extends
             completedTasks = stageData.completedIndices.size,
             totalTasks = s.numTasks,
             submissionTime = s.submissionTime,
-            completionTime = s.completionTime
-          )
+            completionTime = s.completionTime)
         }
       }
 
       val jobStats: Seq[JobInfo] = stageStats
         .groupBy(_.jobId)
-        .map { case (jobId, jobStages) =>
-          jobStages.reduce { (j1: JobInfo, j2: JobInfo) =>
-            JobInfo(
-              jobId = j1.jobId,
-              completedTasks = j1.completedTasks + j2.completedTasks,
-              totalTasks = j1.totalTasks + j2.totalTasks,
-              submissionTime = minOption(j1.submissionTime ++ j2.submissionTime),
-              completionTime = maxOption(j1.submissionTime ++ j2.submissionTime)
-            )
-          }
+        .map {
+          case (jobId, jobStages) =>
+            jobStages.reduce { (j1: JobInfo, j2: JobInfo) =>
+              JobInfo(
+                jobId = j1.jobId,
+                completedTasks = j1.completedTasks + j2.completedTasks,
+                totalTasks = j1.totalTasks + j2.totalTasks,
+                submissionTime = minOption(j1.submissionTime ++ j2.submissionTime),
+                completionTime = maxOption(j1.submissionTime ++ j2.submissionTime))
+            }
         }.toSeq
 
       jobStats.map { j =>
@@ -127,25 +127,23 @@ class SparkMonitor(sparkContext:SparkContext, checkInterval:Long = 1000) extends
           "completed_tasks" -> j.completedTasks,
           "total_tasks" -> j.totalTasks,
           "duration_millis" → jobDuration,
-          "time" → jobDurationStr
-        )
+          "time" → jobDurationStr)
       }
     }
   }
 
-  private[this] var t:Option[Thread] = None
+  private[this] var t: Option[Thread] = None
 
-  private[this] def newT ={
-    new Thread(){
+  private[this] def newT = {
+    new Thread() {
       override def run =
-        while(true) {
+        while (true) {
           Thread.sleep(2000)
           val m = fetchMetrics
           connection <-- notebook.Connection.just(
             JsObject(Seq(
               "jobsStatus" -> JsArray(m),
-              "sparkUi" -> JsString(sparkUiLink.getOrElse(""))
-            )))
+              "sparkUi" -> JsString(sparkUiLink.getOrElse("")))))
         }
     }
   }

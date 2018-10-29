@@ -4,7 +4,7 @@ import akka.actor._
 import notebook.client._
 import notebook.repl.NameDefinition
 import notebook.server._
-import notebook.{Kernel, ReplCollector}
+import notebook.{ Kernel, ReplCollector }
 import org.joda.time.LocalDateTime
 import play.api._
 import play.api.libs.json.Json.obj
@@ -14,14 +14,14 @@ import scala.collection.immutable.Queue
 import scala.collection.mutable
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.language.{postfixOps, reflectiveCalls}
+import scala.language.{ postfixOps, reflectiveCalls }
 
 /**
  * Provides a web-socket interface to the Collector
  */
 class CollWebSocketService(
   system: ActorSystem,
-  notebookName:String,
+  notebookName: String,
   customImports: Option[List[String]],
   customArgs: Option[List[String]],
   initScripts: List[(String, String)],
@@ -97,29 +97,27 @@ class CollWebSocketService(
           kCustomArgs,
           self,
           kInitScripts,
-          kCompilerArgs
-        ).withDeploy(remoteDeploy)
+          kCompilerArgs).withDeploy(remoteDeploy)
       }
 
       context.watch(collector)
     }
 
     def sendAllEarlierNameDefinitions(ws: WebSockWrapper): Unit = {
-      lastTermDefinitions.values.foreach { case (definition, cellId) =>
-        ws.send(
-          obj(
-            "session" → "ignored"
-          ),
-          ws.session,
-          "definition",
-          "iopub",
-          nameDefinitionJson(definition, cellId)
-        )
+      lastTermDefinitions.values.foreach {
+        case (definition, cellId) =>
+          ws.send(
+            obj(
+              "session" → "ignored"),
+            ws.session,
+            "definition",
+            "iopub",
+            nameDefinitionJson(definition, cellId))
       }
       Logger.debug(s"Sent defs to ($ws) in service ${this} (current are: ${lastTermDefinitions.keys})")
     }
 
-    def nameDefinitionJson(nameDefinition: NameDefinition, cellId: String): JsObject ={
+    def nameDefinitionJson(nameDefinition: NameDefinition, cellId: String): JsObject = {
       val NameDefinition(name, tpe, references) = nameDefinition
       val (te, ty): (JsValue, JsValue) = nameDefinition match {
         case d if !d.definesType => (JsString(name), JsNull)
@@ -130,8 +128,7 @@ class CollWebSocketService(
         "type" → ty,
         "tpe" → tpe,
         "cell" → cellId,
-        "references" → references
-      )
+        "references" → references)
     }
 
     def receive = {
@@ -160,9 +157,10 @@ class CollWebSocketService(
           collector.tell(InterruptRequest, op.actor)
         }
 
-        if(currentSessionOperations.tail.nonEmpty) {
-          currentSessionOperations.tail.foreach { case SessionOperation(actor, _) =>
-            actor ! StreamResponse("Previous cell has been interrupted", "stdout")
+        if (currentSessionOperations.tail.nonEmpty) {
+          currentSessionOperations.tail.foreach {
+            case SessionOperation(actor, _) =>
+              actor ! StreamResponse("Previous cell has been interrupted", "stdout")
           }
         }
 
@@ -191,53 +189,53 @@ class CollWebSocketService(
         currentSessionOperations = currentSessionOperations.enqueue(SessionOperation(operation, cellId))
         collector.tell(request, operation)
 
-//      case Terminated(actor) =>
-//        Logger.debug("Termination of op calculator")
-//        if (actor == collector) {
-//          Logger.error(s"Remote calculator ($collector) has been terminated !!!!!")
-//          kernel.shutdown()
-//
-//          ws.send(
-//            obj(
-//              "session" → "ignored"
-//            ),
-//            JsNull,
-//            "status",
-//            "iopub",
-//            obj("execution_state" → "dead")
-//          )
-//          self ! PoisonPill
-//        } else {
-//          Logger.debug(s"Termination of op calculator: ${currentSessionOperations.filter(_.actor == actor)}")
-//          currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
-//        }
+      //      case Terminated(actor) =>
+      //        Logger.debug("Termination of op calculator")
+      //        if (actor == collector) {
+      //          Logger.error(s"Remote calculator ($collector) has been terminated !!!!!")
+      //          kernel.shutdown()
+      //
+      //          ws.send(
+      //            obj(
+      //              "session" → "ignored"
+      //            ),
+      //            JsNull,
+      //            "status",
+      //            "iopub",
+      //            obj("execution_state" → "dead")
+      //          )
+      //          self ! PoisonPill
+      //        } else {
+      //          Logger.debug(s"Termination of op calculator: ${currentSessionOperations.filter(_.actor == actor)}")
+      //          currentSessionOperations = currentSessionOperations.filter(_.actor != actor)
+      //        }
 
-//      case event:org.apache.log4j.spi.LoggingEvent =>
-////         println("Received log event: " + s"""
-////           > ${event.getLevel}
-////           > ${event.getTimeStamp}
-////           > ${event.getLoggerName}
-////           > ${event.getMessage}
-////         """)
-//        ws.send(
-//          obj(
-//            "session" → "ignored"
-//          ),
-//          JsNull,
-//          "log",
-//          "iopub",
-//          obj(
-//            "level"       → event.getLevel.toString,
-//            "time_stamp"  → event.getTimeStamp,
-//            "logger_name" → event.getLoggerName,
-//            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
-//            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
-//          )
-//        )
+      //      case event:org.apache.log4j.spi.LoggingEvent =>
+      ////         println("Received log event: " + s"""
+      ////           > ${event.getLevel}
+      ////           > ${event.getTimeStamp}
+      ////           > ${event.getLoggerName}
+      ////           > ${event.getMessage}
+      ////         """)
+      //        ws.send(
+      //          obj(
+      //            "session" → "ignored"
+      //          ),
+      //          JsNull,
+      //          "log",
+      //          "iopub",
+      //          obj(
+      //            "level"       → event.getLevel.toString,
+      //            "time_stamp"  → event.getTimeStamp,
+      //            "logger_name" → event.getLoggerName,
+      //            "message"     → (""+Option(event.getMessage).map(_.toString).getOrElse("<no-message>")),
+      //            "thrown"      → (if (event.getThrowableStrRep == null) List.empty[String] else event.getThrowableStrRep.toList)
+      //          )
+      //        )
     }
 
     class SessionOperationActors(header: JsValue, session: JsValue) {
-      def singleExecution(cellId:String, counter: Int) = Props(new Actor {
+      def singleExecution(cellId: String, counter: Int) = Props(new Actor {
         def receive = {
           case StreamResponse(data, name) =>
             ws.send(header, session, "stream", "iopub", obj("cell_id" → cellId, "text" → data, "name" → name))
@@ -247,8 +245,7 @@ class CollWebSocketService(
               "cell_id" → cellId,
               "execution_count" → counter,
               "data" → obj(outputType → content),
-              "time" → time
-            ))
+              "time" → time))
             ws.send(header, session, "status", "iopub", obj("cell_id" → cellId, "execution_state" → "idle"))
             ws.send(header, session, "execute_reply", "shell", obj("cell_id" → cellId, "execution_count" → counter))
             context.stop(self)
@@ -259,13 +256,11 @@ class CollWebSocketService(
 
             ws.send(
               obj(
-                "session" → "ignored"
-              ),
+                "session" → "ignored"),
               JsNull,
               "definition",
               "iopub",
-              nameDefinitionJson(nameDefinition, cellId)
-            )
+              nameDefinitionJson(nameDefinition, cellId))
 
           case ErrorResponse(msg, incomplete) =>
             if (incomplete) {
@@ -273,8 +268,7 @@ class CollWebSocketService(
                 "execution_count" → counter,
                 "status" → "error",
                 "ename" → "Error",
-                "traceback" → Seq(msg)
-              ))
+                "traceback" → Seq(msg)))
             }
 
             ws.send(header, session, "status", "iopub", obj("execution_state" → "idle"))
@@ -302,8 +296,7 @@ class CollWebSocketService(
               "found" → found,
               "name" → name,
               "call_def" → callDef,
-              "call_docstring" → "Description TBD"
-            ))
+              "call_docstring" → "Description TBD"))
             context.stop(self)
         }
       })

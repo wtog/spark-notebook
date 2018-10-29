@@ -1,6 +1,6 @@
 package modules.authentication
 
-import org.pac4j.core.context.{Pac4jConstants, WebContext}
+import org.pac4j.core.context.{ Pac4jConstants, WebContext }
 import org.pac4j.core.credentials.UsernamePasswordCredentials
 import org.pac4j.core.credentials.authenticator.Authenticator
 import org.pac4j.core.exception.CredentialsException

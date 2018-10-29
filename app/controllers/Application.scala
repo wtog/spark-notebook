@@ -10,9 +10,9 @@ import akka.util.Timeout
 import notebook.NBSerializer.Metadata
 import notebook.io.Version
 import notebook.server._
-import notebook.server.websocket.{CalcWebSocketService, CollWebSocketService, WebSocketService}
-import notebook.{GenericFile, NotebookResource, Repository, _}
-import org.pac4j.core.profile.{CommonProfile, ProfileManager}
+import notebook.server.websocket.{ CalcWebSocketService, CollWebSocketService, WebSocketService }
+import notebook.{ GenericFile, NotebookResource, Repository, _ }
+import org.pac4j.core.profile.{ CommonProfile, ProfileManager }
 import org.pac4j.play.PlayWebContext
 import org.pac4j.play.store.PlaySessionStore
 import play.api.Play.current
@@ -22,14 +22,14 @@ import play.api.libs.iteratee.Concurrent.Channel
 import play.api.libs.iteratee._
 import play.api.libs.json._
 import play.api.mvc._
-import utils.{AppUtils, SbtProjectGenUtils}
+import utils.{ AppUtils, SbtProjectGenUtils }
 import utils.Const.UTF_8
 
 import scala.concurrent.duration._
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ Future, Promise }
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 case class Crumb(url: String = "", name: String = "")
 
@@ -41,7 +41,7 @@ object EditorOnlyAction extends ActionBuilder[Request] {
   val viewer = config.viewer
 
   def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
-    if (viewer){
+    if (viewer) {
       Future.successful(Results.BadRequest("This action not allowed in viewer mode"))
     } else {
       Logger.info("Calling action")
@@ -138,27 +138,26 @@ object Application extends Controller {
     |    }
     |  }
     |}
-    |""".stripMargin.trim
-  )
+    |""".stripMargin.trim)
 
   def kernelSpecs() = Action {
     Ok(kernelDef)
   }
 
-  private def overrideOptionListDistinctString(x:Option[List[String]], y:Option[List[String]]) = {
+  private def overrideOptionListDistinctString(x: Option[List[String]], y: Option[List[String]]) = {
     val t = x.getOrElse(List.empty[String])
-    val withY =  t ::: (y.getOrElse(List.empty[String]).toSet -- t.toSet).toList
+    val withY = t ::: (y.getOrElse(List.empty[String]).toSet -- t.toSet).toList
     withY match {
       case Nil => None
       case xs => Some(xs.distinct)
     }
   }
 
-  private[this] def kernelResponse(id:Option[String]) =
+  private[this] def kernelResponse(id: Option[String]) =
     Json.parse(
       s"""
          |{
-         |"id": ${id.map((i) => "\""+i+"\"").getOrElse("null")},
+         |"id": ${id.map((i) => "\"" + i + "\"").getOrElse("null")},
          |"name": "spark",
          |"language_info": {
          |  "name" : "Scala",
@@ -166,10 +165,9 @@ object Application extends Controller {
          |  "codemirror_mode" : "text/x-scala"
          |}
          |}
-         |""".stripMargin.trim
-    )
+         |""".stripMargin.trim)
 
-  def getSession(notebookPath:String) = Action {
+  def getSession(notebookPath: String) = Action {
     val id = KernelManager.atPath(notebookPath).map(_._1)
     Ok(Json.obj("kernel" → kernelResponse(id)))
   }
@@ -199,67 +197,63 @@ object Application extends Controller {
         md.flatMap(_.customLocalRepo) // get the custom in the metadata
           .map { l =>
             config.overrideConf.localRepo // precedence on the override
-                               .getOrElse(l) // get back to custom if exists
+              .getOrElse(l) // get back to custom if exists
           }
           .orElse(config.overrideConf.localRepo) // if no custom, try fallback on override
 
       val customRepos: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customRepos),
-          config.overrideConf.repos
-        )
+          config.overrideConf.repos)
 
       val customDeps: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customDeps),
-          config.overrideConf.deps
-        )
-
+          config.overrideConf.deps)
 
       val customImports: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customImports),
-          config.overrideConf.imports
-        )
+          config.overrideConf.imports)
 
       val customArgs: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customArgs),
-          config.overrideConf.args
-        ).map(xs => xs map notebook.util.StringUtils.updateWithVarEnv)
+          config.overrideConf.args).map(xs => xs map notebook.util.StringUtils.updateWithVarEnv)
 
       val customSparkConf: Option[Map[String, String]] = {
         val me = Map.empty[String, String]
         val sconf = for {
-                      m <- md
-                      c <- m.customSparkConf
-                      v <- CustomConf.fromSparkConfJsonToMap(c)
-                    } yield v
+          m <- md
+          c <- m.customSparkConf
+          v <- CustomConf.fromSparkConfJsonToMap(c)
+        } yield v
         val ovsc = config.overrideConf.sparkConf flatMap CustomConf.fromSparkConfJsonToMap
         val updated = sconf.getOrElse(me) ++ ovsc.getOrElse(me)
         if (updated.isEmpty) {
           None
         } else {
-          Some(updated.map{ case (k, v) => k → notebook.util.StringUtils.updateWithVarEnv(v) })
+          Some(updated.map { case (k, v) => k → notebook.util.StringUtils.updateWithVarEnv(v) })
         }
       }
 
       val impersonatedUser = if (hadoopProxyUserEnabled) userName else None
 
-      val kernel = new Kernel(config.kernel.config.underlying,
-                              kernelSystem,
-                              kId,
-                              _root_.utils.AppUtils.isVersioningSupported,
-                              notebookPath,
-                              Some(
-                                customArgs.getOrElse(List.empty[String]) :::
-                                AppUtils.proxy.all.map{ case (k,v) => s"""-D$k=$v"""}
-                              ),
-                              impersonatedUser,
-                              userName)
+      val kernel = new Kernel(
+        config.kernel.config.underlying,
+        kernelSystem,
+        kId,
+        _root_.utils.AppUtils.isVersioningSupported,
+        notebookPath,
+        Some(
+          customArgs.getOrElse(List.empty[String]) :::
+            AppUtils.proxy.all.map { case (k, v) => s"""-D$k=$v""" }),
+        impersonatedUser,
+        userName)
       KernelManager.add(kId, kernel)
 
-      val service = new CalcWebSocketService(kernelSystem,
+      val service = new CalcWebSocketService(
+        kernelSystem,
         appNameToDisplay(md, notebookPath),
         customLocalRepo,
         customRepos,
@@ -270,8 +264,7 @@ object Application extends Controller {
         initScripts,
         compilerArgs,
         kernel,
-        kernelTimeout = kernelKillTimeout
-      )
+        kernelTimeout = kernelKillTimeout)
       kernelIdToWebSocketService += kId -> service
       (kId, kernel, service)
     }
@@ -304,45 +297,42 @@ object Application extends Controller {
       val customDeps: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customDeps),
-          config.overrideConf.deps
-        )
+          config.overrideConf.deps)
 
       val customImports: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customImports),
-          config.overrideConf.imports
-        )
+          config.overrideConf.imports)
 
       val customArgs: Option[List[String]] =
         overrideOptionListDistinctString(
           md.flatMap(_.customArgs),
-          config.overrideConf.args
-        ).map(xs => xs map notebook.util.StringUtils.updateWithVarEnv)
+          config.overrideConf.args).map(xs => xs map notebook.util.StringUtils.updateWithVarEnv)
 
       val impersonatedUser = if (hadoopProxyUserEnabled) userName else None
 
-      val kernel = new Kernel(config.kernel.config.underlying,
+      val kernel = new Kernel(
+        config.kernel.config.underlying,
         kernelSystem,
         kId,
         AppUtils.isVersioningSupported,
         notebookPath,
         Some(
-          customArgs.getOrElse(List.empty[String]) ::: AppUtils.proxy.all.map{ case (k,v) => s"""-D$k=$v"""}
-        ),
+          customArgs.getOrElse(List.empty[String]) ::: AppUtils.proxy.all.map { case (k, v) => s"""-D$k=$v""" }),
         impersonatedUser,
         userName,
         kernelType = Some("collecotr"))
       KernelManager.add(kId, kernel)
 
-      val service = new CollWebSocketService(kernelSystem,
+      val service = new CollWebSocketService(
+        kernelSystem,
         appNameToDisplay(md, notebookPath),
         customImports,
         customArgs,
         initScripts,
         compilerArgs,
         kernel,
-        kernelTimeout = kernelKillTimeout
-      )
+        kernelTimeout = kernelKillTimeout)
       kernelIdToWebSocketService += kId -> service
       (kId, kernel, service)
     }
@@ -373,31 +363,31 @@ object Application extends Controller {
   def sessions() = Action {
     Ok(JsArray(kernelIdToWebSocketService.keys
       .map { k =>
-      KernelManager.get(k).map(l => (k, l))
-    }.collect {
-      case Some(x) => x
-    }.map { case (k, kernel) =>
-      val path: String = kernel.notebookPath.getOrElse(s"KERNEL '$k' SHOULD HAVE A PATH ACTUALLY!")
-      Json.obj(
-        "notebook" → Json.obj("path" → path),
-        "id" → k
-      )
-    }.toSeq)
-    )
+        KernelManager.get(k).map(l => (k, l))
+      }.collect {
+        case Some(x) => x
+      }.map {
+        case (k, kernel) =>
+          val path: String = kernel.notebookPath.getOrElse(s"KERNEL '$k' SHOULD HAVE A PATH ACTUALLY!")
+          Json.obj(
+            "notebook" → Json.obj("path" → path),
+            "id" → k)
+      }.toSeq))
   }
-
 
   def profiles() = Action.async {
     implicit val ec = kernelSystem.dispatcher
-    (clustersActor ? NotebookClusters.Profiles).map { case all: List[JsObject] =>
-      Ok(JsArray(all))
+    (clustersActor ? NotebookClusters.Profiles).map {
+      case all: List[JsObject] =>
+        Ok(JsArray(all))
     }
   }
 
   def clusters() = Action.async {
     implicit val ec = kernelSystem.dispatcher
-    (clustersActor ? NotebookClusters.All).map { case all: List[JsObject] =>
-      Ok(JsArray(all))
+    (clustersActor ? NotebookClusters.All).map {
+      case all: List[JsObject] =>
+        Ok(JsArray(all))
     }
   }
 
@@ -409,8 +399,9 @@ object Application extends Controller {
     implicit val ec = kernelSystem.dispatcher
     json match {
       case o: JsObject =>
-        (clustersActor ? NotebookClusters.Add((json \ "name").as[String], o)).map { case cluster: JsObject =>
-          Ok(cluster)
+        (clustersActor ? NotebookClusters.Add((json \ "name").as[String], o)).map {
+          case cluster: JsObject =>
+            Ok(cluster)
         }
       case _ => Future {
         BadRequest("Add cluster needs an object, got: " + json)
@@ -420,10 +411,10 @@ object Application extends Controller {
   /**
    * add a spark cluster by json meta
    */
-  def deleteCluster(clusterName:String) = EditorOnlyAction.async { request =>
-      Logger.debug("Delete a cluster")
-      implicit val ec = kernelSystem.dispatcher
-      (clustersActor ? NotebookClusters.Remove(clusterName, null)).map{ item => Ok(Json.obj("result" → s"Cluster $clusterName deleted"))}
+  def deleteCluster(clusterName: String) = EditorOnlyAction.async { request =>
+    Logger.debug("Delete a cluster")
+    implicit val ec = kernelSystem.dispatcher
+    (clustersActor ? NotebookClusters.Remove(clusterName, null)).map { item => Ok(Json.obj("result" → s"Cluster $clusterName deleted")) }
   }
 
   def contents(tpe: String, uri: String = "/") = Action { request =>
@@ -438,8 +429,7 @@ object Application extends Controller {
         Json.obj(
           "type" -> resourceType,
           "name" -> resource.name,
-          "path" -> resource.path
-        )
+          "path" -> resource.path)
       }
       Ok(Json.obj("content" → content))
     } else if (tpe == "notebook") {
@@ -451,7 +441,7 @@ object Application extends Controller {
     }
   }
 
-  def createNotebook(p: String, custom: JsObject, name:Option[String]) = {
+  def createNotebook(p: String, custom: JsObject, name: Option[String]) = {
     val path = URLDecoder.decode(p, UTF_8)
     Logger.info(s"Creating notebook at $path")
     val customLocalRepo = Try((custom \ "customLocalRepo").as[String]).toOption.map(_.trim()).filterNot(_.isEmpty)
@@ -459,7 +449,6 @@ object Application extends Controller {
     val customDeps = Try((custom \ "customDeps").as[List[String]]).toOption.filterNot(_.isEmpty)
     val customImports = Try((custom \ "customImports").as[List[String]]).toOption.filterNot(_.isEmpty)
     val customArgs = Try((custom \ "customArgs").as[List[String]]).toOption.filterNot(_.isEmpty)
-
 
     val customMetadata = (for {
       j <- Try((custom \ "customSparkConf").get) if j.isInstanceOf[JsObject]
@@ -508,7 +497,7 @@ object Application extends Controller {
     custom orElse copyFrom
   }
 
-  def newDirectory(path: String, name:String) = {
+  def newDirectory(path: String, name: String) = {
     Logger.info(s"Creating new directory:  [$path]/[$name]")
     notebookManager.mkDir(path, name).map(dir => Ok(Json.obj("path" → dir)))
   }
@@ -565,10 +554,8 @@ object Application extends Controller {
         "notebook-name" -> notebookManager.name,
         "notebook-user" -> getCurrentUserName,
         "notebook-path" -> path,
-        "presentation" -> presentation.getOrElse("edit")
-      ),
-      Some("notebook")
-    ))
+        "presentation" -> presentation.getOrElse("edit")),
+      Some("notebook")))
   }
 
   private[this] def closeKernel(kernelId: String) = {
@@ -586,8 +573,7 @@ object Application extends Controller {
     onClose = (channel, ref) => {
       Logger.info(s"Closing websockets for kernel $kernelId")
       ref ! akka.actor.PoisonPill
-    }
-  )
+    })
 
   def getInfoKernel(kernelId: String) = Action { request =>
     KernelManager.get(kernelId).map(_ => Ok(s"""{ "id" : "$kernelId", "name" : "spark" }""")).getOrElse(NotFound(s"""{ "$kernelId" : "missing" }"""))
@@ -611,13 +597,14 @@ object Application extends Controller {
 
   def listCheckpoints(snb: String) = Action { request =>
     val path = URLDecoder.decode(snb, UTF_8)
-    val cs = notebookManager.checkpoints(path).map { case Version(id, message, ts) =>
-      Json.obj("id" -> id, "message" -> message, "last_modified" -> ts)
+    val cs = notebookManager.checkpoints(path).map {
+      case Version(id, message, ts) =>
+        Json.obj("id" -> id, "message" -> message, "last_modified" -> ts)
     }
     Ok(JsArray(cs))
   }
 
-  def restoreCheckpoint(snb:String, id:String) = Action { request =>
+  def restoreCheckpoint(snb: String, id: String) = Action { request =>
     val path = URLDecoder.decode(snb, UTF_8)
     notebookManager.restoreCheckpoint(path, id)
     // the notebook.js script will reload the notebook from the restored file using `load` again,
@@ -638,15 +625,15 @@ object Application extends Controller {
     try {
       val (newname, newpath) = notebookManager.rename(oldPath, newPath)
 
-      KernelManager.atPath(oldPath).foreach { case (_, kernel) =>
-        kernel.moveNotebook(newpath)
+      KernelManager.atPath(oldPath).foreach {
+        case (_, kernel) =>
+          kernel.moveNotebook(newpath)
       }
 
       Ok(Json.obj(
         "type" → "notebook",
         "name" → newname,
-        "path" → newpath
-      ))
+        "path" → newpath))
     } catch {
       case _: NotebookExistsException => Conflict
     }
@@ -666,8 +653,7 @@ object Application extends Controller {
             Ok(Json.obj(
               "type" → "notebook",
               "name" → name,
-              "path" → savedPath
-            ))
+              "path" → savedPath))
           } recover {
             case _: NotebookExistsException => Conflict
             case anyOther: Throwable =>
@@ -680,7 +666,7 @@ object Application extends Controller {
           BadRequest("Not a valid notebook.")
       }
     }.recover {
-      case e:ClassCastException =>
+      case e: ClassCastException =>
         BadRequest(s"Not a notebook.\n$e")
       case anyOther: Throwable =>
         Logger.error(anyOther.getMessage)
@@ -698,8 +684,7 @@ object Application extends Controller {
 
       Ok(Json.obj(
         "type" → "notebook",
-        "path" → path
-      ))
+        "path" → path))
     } catch {
       case _: NotebookExistsException => Conflict
     }
@@ -731,19 +716,17 @@ object Application extends Controller {
         "deploy-package-base" → deploy_package_base,
         "mesos-version" → mesos_version,
         "viewer_mode" → config.viewer.toString,
-        "terminals-available" → terminals_available
-      ),
+        "terminals-available" → terminals_available),
       Breadcrumbs(
         "/",
         path.split("/").toList.scanLeft(("", "")) {
           case ((accPath, accName), p) => (accPath + "/" + p, p)
-        }.drop(1).map { case (p, x) =>
-          // FIXME Reverse routes don't work with cursier: Crumb(controllers.routes.Application.dash(p.tail).url, x)
-          Crumb("/notebooks/" + p.tail, x)
-        }
-      ),
-      Some("dashboard")
-    ))
+        }.drop(1).map {
+          case (p, x) =>
+            // FIXME Reverse routes don't work with cursier: Crumb(controllers.routes.Application.dash(p.tail).url, x)
+            Crumb("/notebooks/" + p.tail, x)
+        }),
+      Some("dashboard")))
   }
 
   def openObservable(contextId: String) = ImperativeWebsocket.using[JsValue](
@@ -762,12 +745,11 @@ object Application extends Controller {
     onClose = (channel, ref) => {
       Logger.info(s"Closing observable sockect $channel for $contextId")
       ref ! ("remove", channel)
-    }
-  )
+    })
 
   /**
-    * The notebook name to attach to Spark Context (and all related jobs)
-    */
+   * The notebook name to attach to Spark Context (and all related jobs)
+   */
   def appNameToDisplay(metadata: Option[Metadata], notebookPath: Option[String]): String = {
     val explicitName = metadata.map(_.name).getOrElse("Spark notebook")
     notebookPath match {
@@ -779,72 +761,68 @@ object Application extends Controller {
   def getNotebook(name: String, path: String, format: String, dl: Boolean = false) = {
     try {
       Logger.debug(s"getNotebook: name is '$name', path is '$path' and format is '$format'")
-      val response = notebookManager.getNotebook(path).map { case NotebookInfo(lastMod, nbname, data, fpath) =>
-        format match {
-          case "json" =>
-            val j = Json.parse(data)
-            val json = if (!dl) {
-              Json.obj(
-                "content" → j,
-                "name" → nbname,
-                "path" → fpath, //FIXME
-                "autoStartKernel" -> autoStartKernel,
-                "writable" -> !viewer
-              )
-            } else {
-              j
-            }
-            Ok(json).withHeaders(
-              HeaderNames.CONTENT_DISPOSITION → s"""attachment; filename="$path" """,
-              HeaderNames.CONTENT_TYPE → "application/force-download",
-              HeaderNames.CONTENT_ENCODING → "UTF-8",
-              HeaderNames.LAST_MODIFIED → lastMod
-            )
-          case "scala" =>
-            NBSerializer.fromJson(Json.parse(data)) match {
-              case Some(nb) =>
-                val code = nb.cells.map { cells =>
-                  val codeLines = cells.collect {
-                    case NBSerializer.CodeCell(md, "code", sourceLines, Some("scala"), _, _) => sourceLines
-                    case NBSerializer.CodeCell(md, "code", sourceLines, None, _, _) => sourceLines
-                  }
-                  val fc = codeLines.map(_.map { s => s"  $s" }.mkString("\n")).mkString("\n\n  /* ... new cell ... */\n\n").trim
-                  val code = s"""
+      val response = notebookManager.getNotebook(path).map {
+        case NotebookInfo(lastMod, nbname, data, fpath) =>
+          format match {
+            case "json" =>
+              val j = Json.parse(data)
+              val json = if (!dl) {
+                Json.obj(
+                  "content" → j,
+                  "name" → nbname,
+                  "path" → fpath, //FIXME
+                  "autoStartKernel" -> autoStartKernel,
+                  "writable" -> !viewer)
+              } else {
+                j
+              }
+              Ok(json).withHeaders(
+                HeaderNames.CONTENT_DISPOSITION → s"""attachment; filename="$path" """,
+                HeaderNames.CONTENT_TYPE → "application/force-download",
+                HeaderNames.CONTENT_ENCODING → "UTF-8",
+                HeaderNames.LAST_MODIFIED → lastMod)
+            case "scala" =>
+              NBSerializer.fromJson(Json.parse(data)) match {
+                case Some(nb) =>
+                  val code = nb.cells.map { cells =>
+                    val codeLines = cells.collect {
+                      case NBSerializer.CodeCell(md, "code", sourceLines, Some("scala"), _, _) => sourceLines
+                      case NBSerializer.CodeCell(md, "code", sourceLines, None, _, _) => sourceLines
+                    }
+                    val fc = codeLines.map(_.map { s => s"  $s" }.mkString("\n")).mkString("\n\n  /* ... new cell ... */\n\n").trim
+                    val code = s"""
                   |object Cells {
                   |  $fc
                   |}
                   """.stripMargin
-                  code
-                }.getOrElse("//NO CELLS!")
+                    code
+                  }.getOrElse("//NO CELLS!")
 
-                Ok(code).withHeaders(
-                  HeaderNames.CONTENT_DISPOSITION → s"""attachment; filename="$name.scala" """,
-                  HeaderNames.LAST_MODIFIED → lastMod
-                )
-              case None =>
-                InternalServerError(s"Notebook could not be parsed.")
-            }
-          case "markdown" =>
-            NBSerializer.fromJson(Json.parse(data)) match {
-              case Some(nb) =>
-                notebook.export.Markdown.generate(nb, name, false) match {
-                  case Some(Left(code)) =>
-                    Ok(code).withHeaders(
-                      HeaderNames.CONTENT_DISPOSITION → s"""attachment; filename="$name.md" """,
-                      HeaderNames.LAST_MODIFIED → lastMod
-                    )
-                  case Some(Right(file)) =>
-                    Ok.sendFile(
-                      content = file,
-                      fileName = _ => name+".zip"
-                    )
-                  case _ => BadRequest(s"No Cells!")
-                }
-              case None =>
-                InternalServerError(s"Notebook could not be parsed.")
-            }
-          case _ => InternalServerError(s"Unsupported format $format")
-        }
+                  Ok(code).withHeaders(
+                    HeaderNames.CONTENT_DISPOSITION → s"""attachment; filename="$name.scala" """,
+                    HeaderNames.LAST_MODIFIED → lastMod)
+                case None =>
+                  InternalServerError(s"Notebook could not be parsed.")
+              }
+            case "markdown" =>
+              NBSerializer.fromJson(Json.parse(data)) match {
+                case Some(nb) =>
+                  notebook.export.Markdown.generate(nb, name, false) match {
+                    case Some(Left(code)) =>
+                      Ok(code).withHeaders(
+                        HeaderNames.CONTENT_DISPOSITION → s"""attachment; filename="$name.md" """,
+                        HeaderNames.LAST_MODIFIED → lastMod)
+                    case Some(Right(file)) =>
+                      Ok.sendFile(
+                        content = file,
+                        fileName = _ => name + ".zip")
+                    case _ => BadRequest(s"No Cells!")
+                  }
+                case None =>
+                  InternalServerError(s"Notebook could not be parsed.")
+              }
+            case _ => InternalServerError(s"Unsupported format $format")
+          }
       }
 
       response getOrElse NotFound(s"Notebook '$name' not found at $path.")
@@ -863,8 +841,7 @@ object Application extends Controller {
       HeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN -> "*",
       HeaderNames.ACCESS_CONTROL_ALLOW_METHODS -> "GET, POST, PUT, DELETE, OPTIONS",
       HeaderNames.ACCESS_CONTROL_ALLOW_METHODS -> "Accept, Origin, Content-type",
-      HeaderNames.ACCESS_CONTROL_ALLOW_CREDENTIALS -> "true"
-    )
+      HeaderNames.ACCESS_CONTROL_ALLOW_CREDENTIALS -> "true")
   }
 
   def dockerList = TODO
@@ -877,8 +854,7 @@ object Application extends Controller {
       onOpen: Channel[E] => ActorRef,
       onMessage: (E, ActorRef) => Unit,
       onClose: (Channel[E], ActorRef) => Unit,
-      onError: (String, Input[E]) => Unit = (e: String, _: Input[E]) => Logger.error(e)
-    ): WebSocket = {
+      onError: (String, Input[E]) => Unit = (e: String, _: Input[E]) => Logger.error(e)): WebSocket = {
       implicit val sys = kernelSystem.dispatcher
 
       val promiseIn = Promise[Iteratee[E, Unit]]()
@@ -891,8 +867,7 @@ object Application extends Controller {
           } map (_ => onClose(channel, ref))
           promiseIn.success(in)
         },
-        onError = onError
-      )
+        onError = onError)
 
       WebSocket.using[E](_ => (Iteratee.flatten(promiseIn.future), out))
     }

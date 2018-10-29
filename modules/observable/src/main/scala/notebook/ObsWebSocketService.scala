@@ -1,6 +1,6 @@
 package notebook
 
-import akka.actor.{Deploy, _}
+import akka.actor.{ Deploy, _ }
 import play.api.libs.json._
 
 import scala.concurrent._
@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory
 
 import play.api.libs.iteratee._
 
-
 class ObsWebSocketService(system: ActorSystem, val channel: Concurrent.Channel[JsValue], remoteDeployFuture: Future[Deploy]) {
 
   val obsActor = system.actorOf(Props(new LocalActor))
@@ -18,7 +17,7 @@ class ObsWebSocketService(system: ActorSystem, val channel: Concurrent.Channel[J
   class LocalActor extends Actor with ActorLogging {
     var remote: ActorRef = null
 
-    var channels:List[Concurrent.Channel[JsValue]] = List(channel)
+    var channels: List[Concurrent.Channel[JsValue]] = List(channel)
 
     override def preStart() {
       val remoteDeploy = Await.result(remoteDeployFuture, 2 minutes)
@@ -26,16 +25,16 @@ class ObsWebSocketService(system: ActorSystem, val channel: Concurrent.Channel[J
     }
 
     def receive = {
-      case m@("add", channel: Concurrent.Channel[JsValue]) =>
+      case m @ ("add", channel: Concurrent.Channel[JsValue]) =>
         channels = channel :: channels
 
-      case m@("remove", channel: Concurrent.Channel[JsValue]) =>
+      case m @ ("remove", channel: Concurrent.Channel[JsValue]) =>
         channels = channels.filter(_ != channel)
         if (channels.isEmpty) {
           println(s"WebSocketObservableActor: no more channels are attached")
         }
 
-      case msg@ObservableBrowserToVM(id, newValue) =>
+      case msg @ ObservableBrowserToVM(id, newValue) =>
         remote ! msg
 
       case ObservableVMToBrowser(id, value) =>
@@ -45,7 +44,6 @@ class ObsWebSocketService(system: ActorSystem, val channel: Concurrent.Channel[J
   }
 
 }
-
 
 class ObsServiceRemoteActor extends Actor with ActorLogging {
   override def preStart() {

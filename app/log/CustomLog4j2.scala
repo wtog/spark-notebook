@@ -8,13 +8,13 @@ import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.config.Configurator
 import org.slf4j.ILoggerFactory
 import play.api.Mode.Mode
-import play.api.{Configuration, Environment, LoggerConfigurator, Mode}
+import play.api.{ Configuration, Environment, LoggerConfigurator, Mode }
 
 /**
-  * @author : tong.wang
-  * @since : 10/11/18 10:32 PM
-  * @version : 1.0.0
-  */
+ * @author : tong.wang
+ * @since : 10/11/18 10:32 PM
+ * @version : 1.0.0
+ */
 class CustomLog4j2 extends LoggerConfigurator {
   private var factory: ILoggerFactory = _
   private val loggingConfigName = "log4j2.xml"
@@ -38,7 +38,7 @@ class CustomLog4j2 extends LoggerConfigurator {
   }
 
   override def configure(properties: Map[String, String], config: Option[URL]): Unit = {
-    val context =  LogManager.getContext(false).asInstanceOf[LoggerContext]
+    val context = LogManager.getContext(false).asInstanceOf[LoggerContext]
     context.setConfigLocation(config.get.toURI)
   }
 }

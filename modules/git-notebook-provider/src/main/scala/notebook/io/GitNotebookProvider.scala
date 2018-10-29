@@ -1,16 +1,15 @@
 package notebook.io
 
-
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
+import java.nio.file.{ Files, Path }
 
 import com.typesafe.config.Config
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
-import notebook.{Notebook, NotebookNotFoundException, Resource}
+import notebook.{ Notebook, NotebookNotFoundException, Resource }
 
 object GitNotebookProvider {
   val DefaultBranch = "master"
@@ -23,7 +22,7 @@ class GitNotebookProviderConfigurator extends Configurable[NotebookProvider] {
   import scala.concurrent.duration._
   val InitializationTimeout = 10 seconds
 
-  override def apply(config: Config)(implicit ec:ExecutionContext): Future[NotebookProvider] = {
+  override def apply(config: Config)(implicit ec: ExecutionContext): Future[NotebookProvider] = {
     for {
       commitMessages <- CommitMessagesConfiguration(config)
       gitProvider <- (new GitProviderConfigurator())(config)
@@ -37,7 +36,7 @@ class ConfigurableGitNotebookProvider(val gitProvider: GitProvider, commitMsgs: 
   override def isVersioningSupported: Boolean = true
 
   override val root = gitProvider.gitContext.localPath
-  def relativize(path:Path) = root.relativize(path)
+  def relativize(path: Path) = root.relativize(path)
 
   // refresh dir => fs.list
   override def list(path: Path)(implicit ev: ExecutionContext): Future[List[Resource]] = {
@@ -46,9 +45,9 @@ class ConfigurableGitNotebookProvider(val gitProvider: GitProvider, commitMsgs: 
 
   // refresh dir => fs.get file
   override def get(path: Path, version: Option[Version] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
-    val checkoutVersion = version.map{version =>
+    val checkoutVersion = version.map { version =>
       gitProvider.checkout(relativize(path).toString, version.id)
-    }.getOrElse{ Future.successful(())}
+    }.getOrElse { Future.successful(()) }
     for {
       _ <- gitProvider.refreshLocal()
       _ <- checkoutVersion
@@ -71,17 +70,17 @@ class ConfigurableGitNotebookProvider(val gitProvider: GitProvider, commitMsgs: 
     } yield ()
   }
 
-  override def versions(path:Path)(implicit ev: ExecutionContext): Future[List[Version]] = {
+  override def versions(path: Path)(implicit ev: ExecutionContext): Future[List[Version]] = {
     gitProvider.versions(relativize(path).toString)
   }
 
   // fs.save => git.commit => git.push
-  override def save(path: Path, notebook: Notebook, saveSpec: Option[String]= None)(implicit ev: ExecutionContext): Future[Notebook] = {
+  override def save(path: Path, notebook: Notebook, saveSpec: Option[String] = None)(implicit ev: ExecutionContext): Future[Notebook] = {
     val relativePathStr = relativize(path).toString
     val commitMsg = saveSpec.getOrElse(s"${commitMsgs.commit} $relativePathStr")
     for {
       nb <- Notebook.serializeFuture(notebook)
-      _ <- Future{Files.write(path, nb.getBytes(StandardCharsets.UTF_8))}
+      _ <- Future { Files.write(path, nb.getBytes(StandardCharsets.UTF_8)) }
       _ <- gitProvider.add(relativePathStr, commitMsg)
       _ <- gitProvider.push()
       persistedNb <- get(path)
@@ -109,9 +108,9 @@ class ConfigurableGitNotebookProvider(val gitProvider: GitProvider, commitMsgs: 
 // FIXME: move this as a separate class
 object ConfigUtils {
 
-  implicit class ConfigOps(val config:Config) extends AnyRef {
+  implicit class ConfigOps(val config: Config) extends AnyRef {
 
-    def tryGetString(path: String) : Try[String] = {
+    def tryGetString(path: String): Try[String] = {
       if (config.hasPath(path)) {
         Success(config.getString(path))
       } else {
@@ -127,11 +126,11 @@ object ConfigUtils {
       }
     }
 
-    def getMandatoryString(path: String) : String = tryGetString(path).get
+    def getMandatoryString(path: String): String = tryGetString(path).get
 
-    def getSafeString(path:String) : Option[String] = tryGetString(path).toOption
+    def getSafeString(path: String): Option[String] = tryGetString(path).toOption
 
-    def getSafeList(path:String) : Option[List[String]] = {
+    def getSafeList(path: String): Option[List[String]] = {
       if (config.hasPath(path))
         Some(config.getStringList(path).asScala.toList)
       else

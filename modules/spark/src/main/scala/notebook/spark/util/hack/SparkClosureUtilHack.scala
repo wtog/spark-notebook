@@ -11,12 +11,12 @@ object SparkClosureUtilHack {
  * See modules/spark/src/main/scala/notebook/spark/util/SparkClosureUtil.scala
  */
 trait SparkClosureUtilHack {
-  
+
   private val CC = org.apache.spark.util.ClosureCleaner
 
   def appendTo: String => Unit = println
 
-  def clean(o:Object) = {
+  def clean(o: Object) = {
     CC.clean(o, java.lang.Boolean.TRUE, java.lang.Boolean.TRUE)
     // if we reach this point... it's good!
     SparkClosureUtilHack.CLEAN_SUSCCESS
@@ -41,7 +41,7 @@ trait SparkClosureUtilHack {
 
   // define appender to show the cleaning logs
   class HackAppender extends AppenderSkeleton {
-    override def append(event:LoggingEvent) {
+    override def append(event: LoggingEvent) {
       appendTo(event.getMessage.toString)
     }
     override def close() {

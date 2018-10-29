@@ -14,10 +14,10 @@ import play.api.libs.json._
 import play.api.mvc._
 import utils.ConfigurationUtils._
 import utils.Const.UTF_8
-import utils.{SbtProjectGenUtils, AppUtils}
+import utils.{ SbtProjectGenUtils, AppUtils }
 
 import scala.language.postfixOps
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 
 object GeneratedSbtProjects extends Controller {
   private implicit def kernelSystem: ActorSystem = AppUtils.kernelSystem
@@ -28,7 +28,7 @@ object GeneratedSbtProjects extends Controller {
   private def projectManager = SbtProjectGenUtils.projectManager.get
   private def projectStore = SbtProjectGenUtils.projectStore.get
 
-  def logException[T](key:String):PartialFunction[Throwable, Try[T]] = {
+  def logException[T](key: String): PartialFunction[Throwable, Try[T]] = {
     case ex: Exception =>
       Logger.error(s"Could not load config [$key]. Reason: [${ex.getMessage}]")
       Failure(ex)
@@ -69,20 +69,19 @@ object GeneratedSbtProjects extends Controller {
         "project" → generatedProject.outputDirectory,
         "version" → generatedProject.version,
         "job" → outputDir.exists,
-        "zip_archive_url" →  getProjectFile(projectName, sourcesFileName).toOption.map(_ => downloadUrl),
-        "git_repo_https_dir" →  gitWebRootHttps.map(_ + "/" + projectName),
+        "zip_archive_url" → getProjectFile(projectName, sourcesFileName).toOption.map(_ => downloadUrl),
+        "git_repo_https_dir" → gitWebRootHttps.map(_ + "/" + projectName),
         "build_status" -> readBuildStatus(outputDir),
-        "services" → Seq[String]()
-      )
+        "services" → Seq[String]())
     }
     Ok(Json.toJson(arr))
   }
 
-  private def fileContent(f:File, from:Int) = scala.io.Source.fromFile(f).getLines.drop(from).toArray
+  private def fileContent(f: File, from: Int) = scala.io.Source.fromFile(f).getLines.drop(from).toArray
 
-  private def at(p:String, c:String):Option[File] = at(new File(p), c)
+  private def at(p: String, c: String): Option[File] = at(new File(p), c)
 
-  private def at(p:File, c:String):Option[File] = {
+  private def at(p: File, c: String): Option[File] = {
     val f = new File(p, c)
     if (f.exists) Some(f) else None
   }
@@ -104,26 +103,24 @@ object GeneratedSbtProjects extends Controller {
     }.getOrElse(BadRequest(s"$fileName for project $projectName not found!"))
   }
 
-  def projectInfo(projectName:String, from:Int) = Action {
+  def projectInfo(projectName: String, from: Int) = Action {
     projectStore.list.find(_.outputDirectory == Some(projectName)).map { f =>
       val dir = new File(projectManager.projectDir, f.outputDirectory.get)
       val logO: Option[Array[String]] = for {
         jobOut <- at(dir, "out")
       } yield fileContent(jobOut, from)
 
-      val log:Array[String] = logO.getOrElse(Array.empty[String])
+      val log: Array[String] = logO.getOrElse(Array.empty[String])
 
       Ok(Json.obj(
         "name" → projectName,
         "generated" → "job",
-        "log" → log
-      ))
+        "log" → log))
     }.getOrElse(BadRequest(s"Project $projectName not found!"))
   }
 
-
   def artifactoryURI: Option[((String, String), Option[(String, String)])] = {
-    val pullPushOption:Option[(String, String)] = for {
+    val pullPushOption: Option[(String, String)] = for {
       pull <- current.configuration.getString("sbt-project-generation.publishing.artifactory.pull")
       push <- current.configuration.getString("sbt-project-generation.publishing.artifactory.push")
     } yield (pull, push)
@@ -154,10 +151,8 @@ object GeneratedSbtProjects extends Controller {
       Paths.get(sbtHome),
       urlDockerBaseImage,
       urlResolverSbtPlugin,
-      artifactoryURI
-    )
+      artifactoryURI)
   }
-
 
   def generateNbProject(fp: String) = Action(parse.tolerantText) { request =>
     val path = URLDecoder.decode(fp, UTF_8)
@@ -193,12 +188,11 @@ object GeneratedSbtProjects extends Controller {
           maintainer,
           dockerRepo,
           "hdfs://namenode1.hdfs.mesos:50071/docker/docker.tar.gz", // TODO: not good!!!!
-          mesosVersion
-        )
+          mesosVersion)
 
         val project = new Project(nbFile, projectManager.projectDir, projectConfig, sbtDependencyConfig, productionConfig = prod)
         val result = projectManager.publish(project, isPublishLocal)
-        result.onFailure{ case ex:Exception => Logger.error(s"Project generation failed. Reason: ${ex.getMessage}", ex)}
+        result.onFailure { case ex: Exception => Logger.error(s"Project generation failed. Reason: ${ex.getMessage}", ex) }
         Ok(Json.obj("to_dir" → toDir))
       case None =>
         BadRequest("Cannot read and merge notebook")

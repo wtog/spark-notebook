@@ -24,18 +24,17 @@ class ProjectManager(val projectDir: File, projectStore: ProjectConfigStore, git
       "*/jdk",
       "*/jdk-*",
       "*/sbt",
-      "out"
-    )
+      "out")
 
     val igs = scala.io.Source.fromFile(f).getLines.toList
     val toAdd = contents.filter { l => !igs.exists(_ == l) }
     val w = new java.io.FileWriter(f, true)
-    toAdd.foreach(s => w.append(s+"\n"))
+    toAdd.foreach(s => w.append(s + "\n"))
     w.close
     f
   }
 
-  def publish(project: Project, isPublishLocal:Boolean): Future[Unit] = {
+  def publish(project: Project, isPublishLocal: Boolean): Future[Unit] = {
     gitProvider.refreshLocal()
     val job = project.mkJob
 
@@ -52,7 +51,7 @@ class ProjectManager(val projectDir: File, projectStore: ProjectConfigStore, git
 }
 
 trait ProjectConfigStore {
-  def replaceAll(projectConfigs: List[ProjectConfig]) : Unit
+  def replaceAll(projectConfigs: List[ProjectConfig]): Unit
   def add(projectConfig: ProjectConfig): Unit
   def remove(project: Project): Unit = ???
   def list: List[ProjectConfig]
@@ -65,7 +64,8 @@ class FileProjectStore(projectDir: File) extends ProjectConfigStore {
   private val store: File = try {
     new File(projectDir, FileProjectStore.StoreFile)
   } catch {
-    case t: Throwable => logger.error("Unable to create Project Store File", t)
+    case t: Throwable =>
+      logger.error("Unable to create Project Store File", t)
       throw new RuntimeException("Unable to create Project Store File", t)
   }
 
@@ -76,7 +76,8 @@ class FileProjectStore(projectDir: File) extends ProjectConfigStore {
       replaceAll(Nil)
     }
   } catch {
-    case t: Throwable => logger.error("Unable to initialize project store", t)
+    case t: Throwable =>
+      logger.error("Unable to initialize project store", t)
       throw new RuntimeException("Unable to initialize project store", t)
   }
 
@@ -86,13 +87,13 @@ class FileProjectStore(projectDir: File) extends ProjectConfigStore {
     ProjectConfigJsonSupport.fromJson(json)
   }
 
-  def replaceAll(projects: List[ProjectConfig]) : Unit = {
+  def replaceAll(projects: List[ProjectConfig]): Unit = {
     val json = ProjectConfigJsonSupport.toJson(projects)
     FileUtils.writeTo(store)(Json.stringify(json))
   }
 
   def add(p: ProjectConfig) = {
-    val allProjects = p :: list.filter(other => other.name != p.name )
+    val allProjects = p :: list.filter(other => other.name != p.name)
     replaceAll(allProjects)
   }
 
@@ -103,60 +104,55 @@ object FileProjectStore {
 
 object ProjectConfigJsonSupport {
 
-  implicit val readUrl:Reads[URL] = new Reads[URL] {
+  implicit val readUrl: Reads[URL] = new Reads[URL] {
     override def reads(json: JsValue): JsResult[URL] = {
       JsSuccess(new URL(json.as[String]))
     }
   }
-  implicit val writeUrl:Writes[URL] = new Writes[URL] {
-    def writes(url:URL) = Json.toJson(url.toString)
+  implicit val writeUrl: Writes[URL] = new Writes[URL] {
+    def writes(url: URL) = Json.toJson(url.toString)
   }
 
-  implicit val readCredentials:Reads[Credentials] = (
+  implicit val readCredentials: Reads[Credentials] = (
     (JsPath \ Credentials.Username).read[String] and
-      (JsPath \ Credentials.Password).read[String])(Credentials.apply _)
+    (JsPath \ Credentials.Password).read[String])(Credentials.apply _)
 
   implicit val writeCredentials: Writes[Credentials] = (
     (JsPath \ Credentials.Username).write[String] and
-      (JsPath \ Credentials.Password).write[String])(unlift(Credentials.unapply))
+    (JsPath \ Credentials.Password).write[String])(unlift(Credentials.unapply))
 
-  implicit val readSecuredUrl:Reads[SecuredUrl] = (
+  implicit val readSecuredUrl: Reads[SecuredUrl] = (
     (JsPath \ SecuredUrl.Url).read[URL] and
-      (JsPath \ SecuredUrl.Authentication).readNullable[Credentials]
-    )(SecuredUrl.apply _)
+    (JsPath \ SecuredUrl.Authentication).readNullable[Credentials])(SecuredUrl.apply _)
 
-  implicit val writeSecuredUrl:Writes[SecuredUrl] = (
+  implicit val writeSecuredUrl: Writes[SecuredUrl] = (
     (JsPath \ SecuredUrl.Url).write[URL] and
-      (JsPath \ SecuredUrl.Authentication).write[Option[Credentials]]
-    )(unlift(SecuredUrl.unapply))
-
+    (JsPath \ SecuredUrl.Authentication).write[Option[Credentials]])(unlift(SecuredUrl.unapply))
 
   implicit val projectRead: Reads[ProjectConfig] = (
     (JsPath \ "pkg").read[String] and
-      (JsPath \ "version").read[String] and
-      (JsPath \ "maintainer").read[String] and
-      (JsPath \ "dockerRepo").read[String] and
-      (JsPath \ "dockercfg").read[String] and
-      (JsPath \ "mesosVersion").read[String] and
-      (JsPath \ "name").readNullable[String] and
-      (JsPath \ "outputDirectory").readNullable[String]
-    )(ProjectConfig.apply _)
+    (JsPath \ "version").read[String] and
+    (JsPath \ "maintainer").read[String] and
+    (JsPath \ "dockerRepo").read[String] and
+    (JsPath \ "dockercfg").read[String] and
+    (JsPath \ "mesosVersion").read[String] and
+    (JsPath \ "name").readNullable[String] and
+    (JsPath \ "outputDirectory").readNullable[String])(ProjectConfig.apply _)
 
   implicit val projectWrite: Writes[ProjectConfig] = (
     (JsPath \ "pkg").write[String] and
-      (JsPath \ "version").write[String] and
-      (JsPath \ "maintainer").write[String] and
-      (JsPath \ "dockerRepo").write[String] and
-      (JsPath \ "dockercfg").write[String] and
-      (JsPath \ "mesosVersion").write[String] and
-      (JsPath \ "name").writeNullable[String] and
-      (JsPath \ "outputDirectory").writeNullable[String]
-    )(unlift(ProjectConfig.unapply))
+    (JsPath \ "version").write[String] and
+    (JsPath \ "maintainer").write[String] and
+    (JsPath \ "dockerRepo").write[String] and
+    (JsPath \ "dockercfg").write[String] and
+    (JsPath \ "mesosVersion").write[String] and
+    (JsPath \ "name").writeNullable[String] and
+    (JsPath \ "outputDirectory").writeNullable[String])(unlift(ProjectConfig.unapply))
 
   def toJson(config: ProjectConfig): JsValue = Json.toJson(config)
   def toJson(projects: List[ProjectConfig]): JsValue = Json.toJson(projects)
-  def fromJson(js:JsValue): List[ProjectConfig] = Json.fromJson[List[ProjectConfig]](js) match {
-    case jsConfig: JsSuccess[List[ProjectConfig]] =>  jsConfig.get
+  def fromJson(js: JsValue): List[ProjectConfig] = Json.fromJson[List[ProjectConfig]](js) match {
+    case jsConfig: JsSuccess[List[ProjectConfig]] => jsConfig.get
     case err: JsError => throw new RuntimeException("Unable to parse Project Configuration:" + err.toString)
   }
 }

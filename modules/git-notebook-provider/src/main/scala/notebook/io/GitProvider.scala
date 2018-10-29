@@ -2,28 +2,28 @@ package notebook.io
 
 import java.io.File
 import java.net.URI
-import java.nio.file.{Files, Path}
+import java.nio.file.{ Files, Path }
 
 import com.jcraft.jsch.Session
 import com.typesafe.config.Config
-import org.eclipse.jgit.api.{CloneCommand, Git, TransportCommand, TransportConfigCallback}
+import org.eclipse.jgit.api.{ CloneCommand, Git, TransportCommand, TransportConfigCallback }
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.transport.OpenSshConfig.Host
-import org.eclipse.jgit.transport.{JschConfigSessionFactory, SshTransport, Transport, UsernamePasswordCredentialsProvider}
+import org.eclipse.jgit.transport.{ JschConfigSessionFactory, SshTransport, Transport, UsernamePasswordCredentialsProvider }
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Random, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Random, Success, Try }
 import notebook.io.FutureUtil._
 
 trait GitProvider {
-  def init()(implicit ec:ExecutionContext): Future[Unit]
-  def refreshLocal()(implicit ec:ExecutionContext): Future[Unit]
-  def add(relativePath: String, commitMessage: String)(implicit ec:ExecutionContext): Future[Unit]
-  def push()(implicit ec:ExecutionContext) : Future[Unit]
-  def remove(relativePath: String, commitMessage: String)(implicit ec:ExecutionContext): Future[Unit]
-  def checkout(relativePath: String, commit: String)(implicit ec:ExecutionContext): Future[Unit]
-  def versions(relativePath: String)(implicit ec:ExecutionContext): Future[List[Version]]
+  def init()(implicit ec: ExecutionContext): Future[Unit]
+  def refreshLocal()(implicit ec: ExecutionContext): Future[Unit]
+  def add(relativePath: String, commitMessage: String)(implicit ec: ExecutionContext): Future[Unit]
+  def push()(implicit ec: ExecutionContext): Future[Unit]
+  def remove(relativePath: String, commitMessage: String)(implicit ec: ExecutionContext): Future[Unit]
+  def checkout(relativePath: String, commit: String)(implicit ec: ExecutionContext): Future[Unit]
+  def versions(relativePath: String)(implicit ec: ExecutionContext): Future[List[Version]]
 
   def gitContext: GitContext
 }
@@ -44,8 +44,8 @@ trait GitContext {
 
 object GitContext {
   object implicits {
-    implicit class CloneCommandOps(val cmd : CloneCommand) extends AnyRef {
-      def setURI(uri:URI) = cmd.setURI(uri.toString)
+    implicit class CloneCommandOps(val cmd: CloneCommand) extends AnyRef {
+      def setURI(uri: URI) = cmd.setURI(uri.toString)
     }
   }
 }
@@ -59,33 +59,33 @@ trait RemoteGitContext extends GitContext {
   def push = git.push()
 }
 
-trait LocalGitProvider extends GitProvider { gitCtx : GitContext =>
+trait LocalGitProvider extends GitProvider { gitCtx: GitContext =>
 
-  override def refreshLocal()(implicit ec:ExecutionContext): Future[Unit] = Future.successful()
+  override def refreshLocal()(implicit ec: ExecutionContext): Future[Unit] = Future.successful()
 
-  override def add(relativePath: String, commitMessage: String)(implicit ec:ExecutionContext): Future[Unit] = {
+  override def add(relativePath: String, commitMessage: String)(implicit ec: ExecutionContext): Future[Unit] = {
     Future {
       gitCtx.add.addFilepattern(relativePath).call()
       gitCtx.commit.setMessage(commitMessage).call()
     }
   }
 
-  override def push()(implicit ec:ExecutionContext): Future[Unit] = Future.successful()
+  override def push()(implicit ec: ExecutionContext): Future[Unit] = Future.successful()
 
-  override def remove(relativePath: String, commitMessage: String)(implicit ec:ExecutionContext): Future[Unit] = {
+  override def remove(relativePath: String, commitMessage: String)(implicit ec: ExecutionContext): Future[Unit] = {
     Future {
       gitCtx.rm.addFilepattern(relativePath).call()
       gitCtx.commit.setMessage(commitMessage).call()
     }
   }
 
-  override def checkout(relativePath: String, commit: String)(implicit ec:ExecutionContext): Future[Unit] = {
-    Future{
+  override def checkout(relativePath: String, commit: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    Future {
       gitCtx.checkout.addPath(relativePath).setForce(true).setStartPoint(commit).call()
     }
   }
 
-  override def versions(relativePath: String)(implicit ec:ExecutionContext): Future[List[Version]] = Future {
+  override def versions(relativePath: String)(implicit ec: ExecutionContext): Future[List[Version]] = Future {
     import scala.collection.JavaConverters._
     val logs = gitCtx.log.addPath(relativePath).call()
     logs.iterator().asScala.toList.map(commitRef => Version(commitRef.name(), commitRef.getFullMessage, commitRef.getCommitTime))
@@ -95,11 +95,11 @@ trait LocalGitProvider extends GitProvider { gitCtx : GitContext =>
 
 trait RemoteGitProvider extends LocalGitProvider { gitCtx: RemoteGitContext =>
 
-  override def refreshLocal()(implicit ec:ExecutionContext): Future[Unit] = Future {
+  override def refreshLocal()(implicit ec: ExecutionContext): Future[Unit] = Future {
     gitCtx.auth(gitCtx.pull).call()
   }
 
-  override def push()(implicit ec:ExecutionContext):Future[Unit] = Future {
+  override def push()(implicit ec: ExecutionContext): Future[Unit] = Future {
     // FIXME: ideally we shouldn't need to force the pushUrl
     gitCtx.auth(gitCtx.push.setRemote(gitCtx.remote.toString)).call()
   }
@@ -107,7 +107,7 @@ trait RemoteGitProvider extends LocalGitProvider { gitCtx: RemoteGitContext =>
 }
 
 sealed trait Auth {
-  def apply[T1 <: TransportCommand[T1, _], _](cmd: T1 ): T1
+  def apply[T1 <: TransportCommand[T1, _], _](cmd: T1): T1
 }
 
 class KeyFileAuth(keyFile: String, passphrase: Option[String]) extends Auth {
@@ -140,7 +140,7 @@ class KeyFileAuth(keyFile: String, passphrase: Option[String]) extends Auth {
   }
 }
 
-class PasswordAuth(password:String) extends Auth {
+class PasswordAuth(password: String) extends Auth {
   def apply[T1 <: TransportCommand[T1, _], _](cmd: T1): T1 = {
     val passwordTransportConfigCallback = new TransportConfigCallback {
       override def configure(transport: Transport): Unit = {
@@ -174,27 +174,26 @@ object CommitMessagesConfiguration extends Configurable[CommitMessages] {
   val DefaultCommitMessage: String = "Saved file"
   val DefaultMoveMessage: String = "Moved file"
 
-  def apply(config: Config)(implicit ec:ExecutionContext): Future[CommitMessages] = {
+  def apply(config: Config)(implicit ec: ExecutionContext): Future[CommitMessages] = {
     val initialCommitMessage = config.getSafeString("messages.initial_commit").getOrElse(DefaultInitialCommit)
     val commitMessageSave = config.getSafeString("messages.save").getOrElse(DefaultCommitMessage)
     val commitMessageRemove = config.getSafeString("messages.remove").getOrElse(DefaultDeleteMessage)
     val commitMessagesMove = config.getSafeString("messages.move").getOrElse(DefaultMoveMessage)
-    Future(CommitMessages(initialCommitMessage, commitMessageRemove, commitMessageSave, commitMessagesMove ))
+    Future(CommitMessages(initialCommitMessage, commitMessageRemove, commitMessageSave, commitMessagesMove))
   }
 
 }
 
 case class LocalRepo(
-                      pathState: PathState,
-                      override val branch:String,
-                      override val commitMessages: CommitMessages
-                    ) extends GitContext with LocalGitProvider {
+  pathState: PathState,
+  override val branch: String,
+  override val commitMessages: CommitMessages) extends GitContext with LocalGitProvider {
   val repository: Repository = new FileRepositoryBuilder().setWorkTree(pathState.toFile).build()
   override lazy val git = new Git(repository)
   override val localPath: Path = pathState.path
   override def gitContext: GitContext = this
 
-  def init()(implicit ec:ExecutionContext): Future[Unit] = Future {
+  def init()(implicit ec: ExecutionContext): Future[Unit] = Future {
     pathState match {
       case ep: EmptyPath => // Init git in there
         Git.init().setBare(false).setDirectory(ep.toFile).call()
@@ -227,17 +226,16 @@ object LocalRepoConfiguration {
 
   val LocalPathKey = "local_path"
 
-  def parse(config:Config, commitMessages: CommitMessages) : Try[LocalRepo] = {
+  def parse(config: Config, commitMessages: CommitMessages): Try[LocalRepo] = {
     val branch = config.getSafeString("branch").getOrElse(GitNotebookProvider.DefaultBranch)
     config.tryGetString(LocalPathKey).flatMap(str => PathState(str)).map(ps => LocalRepo(ps, branch, commitMessages))
   }
 }
 
 case class RemoteRepo(
-                       localRepo: LocalRepo,
-                       override val remote: URI,
-                       override val auth: Auth
-                     ) extends RemoteGitContext with RemoteGitProvider {
+  localRepo: LocalRepo,
+  override val remote: URI,
+  override val auth: Auth) extends RemoteGitContext with RemoteGitProvider {
   override val git = localRepo.git
   override val branch = localRepo.branch
   override val commitMessages = localRepo.commitMessages
@@ -246,19 +244,19 @@ case class RemoteRepo(
   import GitContext.implicits._
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  override def init()(implicit ec:ExecutionContext): Future[Unit] =  localRepo.pathState match {
+  override def init()(implicit ec: ExecutionContext): Future[Unit] = localRepo.pathState match {
     // Empty local dir => clone remote
     case ep: EmptyPath => cloneToLocal()
 
     case negp: NonEmptyGitPath => // existing path is assumed to be a clone of the remote.
-      Future{checkout.setName(branch).call(); ()}
+      Future { checkout.setName(branch).call(); () }
 
     case negp: NonEmptyNonGitPath => // we don't support an existing non-git directory. Set aside and re-recreate
       moveCurrentPath()
-      Future{PathState.create(localRepo.path)}.flatMap(_ => cloneToLocal())
+      Future { PathState.create(localRepo.path) }.flatMap(_ => cloneToLocal())
   }
 
-  private[io] def moveCurrentPath() : Unit = {
+  private[io] def moveCurrentPath(): Unit = {
     val currentPath = localRepo.path
     val dirname = currentPath.getFileName
     val targetDirName = s"$dirname.moved-${System.currentTimeMillis()}-${Random.nextInt(1000)}"
@@ -281,16 +279,16 @@ object RemoteRepoConfiguration {
 
   import ConfigUtils._
 
-  def toURI(s : String) : Try[URI] = Try(new URI(s))
-  def checkFileExists(file : String) : Try[String] = if (new File(file).exists() ) {
+  def toURI(s: String): Try[URI] = Try(new URI(s))
+  def checkFileExists(file: String): Try[String] = if (new File(file).exists()) {
     Success(file)
   } else {
     Failure(new ConfigurationCorruptException(s"Key file $file does not exist."))
   }
 
   def validateRepoUrl(repo: URI): Try[URI] = {
-    val SupportedProtocols = Set ("http", "https", "ssh")
-    if (SupportedProtocols( repo.getScheme )) {
+    val SupportedProtocols = Set("http", "https", "ssh")
+    if (SupportedProtocols(repo.getScheme)) {
       Success(repo)
     } else {
       Failure(new ConfigurationCorruptException(s"Git repository protocol is not supported: ${repo.getScheme}"))
@@ -307,33 +305,32 @@ object RemoteRepoConfiguration {
     }
   }
 
-  def parse(config:Config): Try[Option[LocalRepo => RemoteRepo]] = {
+  def parse(config: Config): Try[Option[LocalRepo => RemoteRepo]] = {
 
     def mkRepo(location: URI, auth: Auth): Try[Option[LocalRepo => RemoteRepo]] = Success(Some(localRepo => RemoteRepo(localRepo, location, auth)))
 
     val remoteURI = config.getSafeString("remote").map(parseRemote)
 
-    val authKey = config.getSafeString("authentication.key_file").map(checkFileExists _ )
+    val authKey = config.getSafeString("authentication.key_file").map(checkFileExists _)
     val passphrase = config.getSafeString("authentication.key_file_passphrase")
     val username = config.getSafeString("authentication.username")
     val password = config.getSafeString("authentication.password")
 
-
     (remoteURI, authKey, username, password) match {
       case (None, _, _, _) => Success(None)
-      case (Some(Failure(ex)), _, _,_) => Failure(ex)
+      case (Some(Failure(ex)), _, _, _) => Failure(ex)
       case (Some(Success(location)), Some(Failure(filex)), _, _) => Failure(filex)
       case (Some(Success(location)), Some(Success(keyfile)), _, _) => mkRepo(location, new KeyFileAuth(keyfile, passphrase))
       case (Some(Success(location)), None, Some(user), Some(pwd)) => mkRepo(location, new UsernamePasswordAuth(user, pwd))
       case (Some(Success(location)), None, None, Some(pwd)) => mkRepo(location, new PasswordAuth(pwd))
-      case _ =>  Failure(new ConfigurationCorruptException("Invalid Remote Git Repository Configuration"))
+      case _ => Failure(new ConfigurationCorruptException("Invalid Remote Git Repository Configuration"))
     }
   }
 }
 
 class GitProviderConfigurator extends Configurable[GitProvider] {
 
-  override def apply(config: Config)(implicit ec:ExecutionContext): Future[GitProvider] = {
+  override def apply(config: Config)(implicit ec: ExecutionContext): Future[GitProvider] = {
 
     val repoConfig = for {
       commitMessages <- CommitMessagesConfiguration(config)
@@ -341,14 +338,14 @@ class GitProviderConfigurator extends Configurable[GitProvider] {
       remote <- tryToFuture(RemoteRepoConfiguration.parse(config))
     } yield (local, remote)
 
-
-    repoConfig.flatMap { case (localRepo, remoteRepoFunc) =>
-      val gitProvider: GitProvider = remoteRepoFunc.map { localToRemote =>
-        localToRemote(localRepo)
-      }.getOrElse {
-        localRepo
-      }
-      gitProvider.init().map(_ => gitProvider)
+    repoConfig.flatMap {
+      case (localRepo, remoteRepoFunc) =>
+        val gitProvider: GitProvider = remoteRepoFunc.map { localToRemote =>
+          localToRemote(localRepo)
+        }.getOrElse {
+          localRepo
+        }
+        gitProvider.init().map(_ => gitProvider)
     }
   }
 

@@ -25,6 +25,10 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.8.5")
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-git-stamp" % "5.2.0")
 
+addSbtPlugin("org.scalastyle" % "scalastyle-sbt-plugin" % "1.0.0")
+addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.2")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.6.0-M15")
+
 /**
   * coursier
   *

@@ -4,7 +4,7 @@ import notebook.util.Match
 
 sealed trait CalcRequest
 
-case class ExecuteRequest(cellId:String, counter: Int, code: String) extends CalcRequest
+case class ExecuteRequest(cellId: String, counter: Int, code: String) extends CalcRequest
 
 case class CompletionRequest(line: String, cursorPosition: Int) extends CalcRequest
 
@@ -18,7 +18,7 @@ sealed trait CalcResponse
 
 case class StreamResponse(data: String, name: String) extends CalcResponse
 
-case class ExecuteResponse(outputType:String, content: String, time:String) extends CalcResponse
+case class ExecuteResponse(outputType: String, content: String, time: String) extends CalcResponse
 
 case class ErrorResponse(message: String, incomplete: Boolean) extends CalcResponse
 
