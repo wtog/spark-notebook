@@ -149,9 +149,9 @@ class ReplCollector(
         case (timeToEval, Success(result)) =>
           val evalTimeStats = s"Took: $timeToEval, at ${new LocalDateTime().toString("Y-MM-dd HH:mm")}"
           thisSender ! ExecuteResponse(generatedReplCode.outputType, result.toString, evalTimeStats)
-        case (timeToEval, Failure(stackTrace)) =>
+        case (_, Failure(stackTrace)) =>
           thisSender ! ErrorResponse(stackTrace, incomplete = false)
-        case (timeToEval, Incomplete) =>
+        case (_, Incomplete) =>
           thisSender ! ErrorResponse("Incomplete (hint: check the parenthesis)", incomplete = true)
       }
 

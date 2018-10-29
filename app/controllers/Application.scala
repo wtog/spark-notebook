@@ -329,7 +329,7 @@ object Application extends Controller {
         appNameToDisplay(md, notebookPath),
         customImports,
         customArgs,
-        initScripts,
+        initScripts = List.empty[(String, String)],
         compilerArgs,
         kernel,
         kernelTimeout = kernelKillTimeout)
